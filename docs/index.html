@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reliability Analytics Platform — Snapshot Report</title>
+<meta name="description" content="A 12-month synthetic reliability dataset turned into DORA metrics, measured alert-noise reduction, and a ranked risk list — with an AI layer that summarizes and retrieves but never computes a metric.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F5F7;
+    --paper-2: #FFFFFF;
+    --paper-3: #E7EBEF;
+    --ink: #10161F;
+    --ink-dim: #4B5768;
+    --ink-faint: #7C8898;
+    --line: #DCE1E7;
+    --accent: #0E7C74;
+    --accent-soft: #E3F4F1;
+    --ok: #1A8F5E;
+    --ok-soft: #E1F5EA;
+    --warn: #B5760A;
+    --warn-soft: #FCEFD9;
+    --bad: #C13A3A;
+    --bad-soft: #FBE6E6;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --shadow: 0 1px 2px rgba(16,22,31,0.04), 0 8px 24px -12px rgba(16,22,31,0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0B0F16;
+      --paper-2: #121826;
+      --paper-3: #19212F;
+      --ink: #EDF1F5;
+      --ink-dim: #A9B4C2;
+      --ink-faint: #6E7A8B;
+      --line: #232C3B;
+      --accent: #3FD9C7;
+      --accent-soft: #142A27;
+      --ok: #4ADE94;
+      --ok-soft: #10261B;
+      --warn: #F3B94D;
+      --warn-soft: #2B2210;
+      --bad: #F1706B;
+      --bad-soft: #2C1414;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -14px rgba(0,0,0,0.6);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); color: var(--accent); }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Header ---------- */
+  header.masthead {
+    border-bottom: 1px solid var(--line);
+    padding: 56px 0 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+  .dek {
+    font-size: 17px;
+    color: var(--ink-dim);
+    max-width: 62ch;
+    margin: 0 0 24px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .meta-row strong { color: var(--ink-dim); font-weight: 500; }
+
+  /* ---------- Section scaffolding ---------- */
+  section { padding: 48px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .section-note { font-size: 14px; color: var(--ink-faint); max-width: 46ch; text-align: right; }
+  p.lede { color: var(--ink-dim); max-width: 72ch; margin: -8px 0 24px; }
+
+  /* ---------- Headline strip ---------- */
+  .headline-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .headline-cell { background: var(--paper-2); padding: 22px 20px; }
+  .headline-cell .num { font-family: var(--mono); font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  .headline-cell .label { font-size: 13px; color: var(--ink-faint); margin-top: 6px; }
+
+  /* ---------- Cards / grid ---------- */
+  .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .card {
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card .k { font-size: 13px; color: var(--ink-faint); margin-bottom: 10px; }
+  .card .v { font-family: var(--mono); font-size: 24px; font-weight: 600; }
+  .card .sub { font-size: 13px; margin-top: 8px; color: var(--ink-dim); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.02em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .pill.elite { background: var(--ok-soft); color: var(--ok); }
+  .pill.high { background: var(--accent-soft); color: var(--accent); }
+  .pill.medium { background: var(--warn-soft); color: var(--warn); }
+  .pill.low { background: var(--bad-soft); color: var(--bad); }
+  .trend { font-family: var(--mono); font-size: 12.5px; }
+  .trend.up { color: var(--ok); }
+  .trend.down { color: var(--bad); }
+  .trend.flat { color: var(--ink-faint); }
+
+  /* ---------- Bar chart (risk ranking) ---------- */
+  .barlist { display: flex; flex-direction: column; gap: 10px; }
+  .barrow { display: grid; grid-template-columns: 150px 1fr 56px; align-items: center; gap: 14px; }
+  .barrow .name { font-family: var(--mono); font-size: 13.5px; color: var(--ink-dim); }
+  .barrow .track { position: relative; height: 22px; background: var(--paper-3); border-radius: 5px; overflow: hidden; }
+  .barrow .fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: linear-gradient(90deg, var(--accent), var(--accent)); opacity: 0.85; }
+  .barrow.top .fill { opacity: 1; }
+  .barrow .score { font-family: var(--mono); font-size: 13.5px; text-align: right; color: var(--ink); font-weight: 600; }
+
+  /* ---------- Coefficient diverging bars ---------- */
+  .divlist { display: flex; flex-direction: column; gap: 9px; }
+  .divrow { display: grid; grid-template-columns: 168px 1fr 62px; align-items: center; gap: 14px; }
+  .divrow .name { font-family: var(--mono); font-size: 12.5px; color: var(--ink-dim); }
+  .divtrack { position: relative; height: 18px; background: var(--paper-3); border-radius: 4px; }
+  .divtrack .axis { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 1px; background: var(--line); }
+  .divtrack .bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+  .divtrack .bar.pos { left: 50%; background: var(--warn); }
+  .divtrack .bar.neg { right: 50%; background: var(--accent); }
+  .divrow .val { font-family: var(--mono); font-size: 12.5px; text-align: right; }
+
+  /* ---------- Tables ---------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+  thead th {
+    text-align: left; font-family: var(--mono); font-size: 11.5px; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--ink-faint); font-weight: 500;
+    padding: 12px 16px; background: var(--paper-3); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0;
+  }
+  tbody td { padding: 11px 16px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 13.5px; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: color-mix(in srgb, var(--paper-3) 40%, transparent); }
+  td.svc { font-family: var(--sans); font-weight: 500; }
+
+  /* ---------- Capacity chips ---------- */
+  .chip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .chip { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--paper-2); }
+  .chip .svc { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .chip .status-flag { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .chip.trend-real { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); background: var(--warn-soft); }
+  .chip.trend-real .status-flag { color: var(--warn); }
+  .chip.trend-none .status-flag { color: var(--ink-faint); }
+  .chip .detail { font-family: var(--mono); font-size: 12.5px; color: var(--ink-dim); margin-top: 6px; }
+
+  /* ---------- Eval comparison ---------- */
+  .eval-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .eval-card { background: var(--paper-2); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .eval-card h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  .eval-card .method { font-size: 13px; color: var(--ink-faint); margin-bottom: 16px; }
+  .compare-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .compare-row .clabel { width: 82px; flex-shrink: 0; color: var(--ink-dim); }
+  .compare-track { flex: 1; height: 16px; background: var(--paper-3); border-radius: 4px; position: relative; overflow: hidden; }
+  .compare-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+  .compare-fill.a { background: var(--ink-faint); }
+  .compare-fill.b { background: var(--accent); }
+  .compare-val { width: 46px; text-align: right; font-family: var(--mono); font-size: 12.5px; flex-shrink: 0; }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: var(--ink-dim);
+    margin-top: 16px;
+  }
+  .callout strong { color: var(--ink); }
+
+  /* ---------- Footer ---------- */
+  footer { padding: 40px 0 64px; }
+  footer .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; }
+  footer h3 { font-size: 14px; margin: 0 0 10px; color: var(--ink-dim); }
+  footer p { color: var(--ink-faint); font-size: 13.5px; max-width: 60ch; }
+  footer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  footer li a { font-size: 13.5px; }
+  .stack-note { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); margin-top: 24px; }
+
+  @media (max-width: 860px) {
+    .headline-strip { grid-template-columns: repeat(2, 1fr); }
+    .card-grid { grid-template-columns: repeat(2, 1fr); }
+    .eval-grid { grid-template-columns: 1fr; }
+    footer .cols { grid-template-columns: 1fr; }
+    .barrow { grid-template-columns: 96px 1fr 46px; }
+    .divrow { grid-template-columns: 108px 1fr 50px; }
+  }
+  @media (max-width: 560px) {
+    .headline-strip { grid-template-columns: 1fr 1fr; }
+    .card-grid { grid-template-columns: 1fr; }
+    .section-note { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span>Snapshot report · synthetic dataset · frozen 2026-08-22</div>
+    <h1>Twelve months of alerts, incidents and deploys, turned into what actually needs fixing.</h1>
+    <p class="dek">A synthetic reliability dataset for 8 services with a real dependency graph — run through alert
+      deduplication, the four DORA metrics, a change-failure model, per-service MTTR fitting, capacity forecasting,
+      and an AI layer that summarizes and retrieves but never touches a metric. Every number below is scored against
+      ground truth the algorithms never saw.</p>
+    <div class="meta-row">
+      <span><strong>Window</strong> 2025-08-22 → 2026-08-22</span>
+      <span><strong>Services</strong> 8</span>
+      <span><strong>Alerts</strong> 41,572</span>
+      <span><strong>Incidents</strong> 464</span>
+      <span><strong>Deployments</strong> 3,962</span>
+      <span><strong>Report computed</strong> 2026-08-22T00:55 UTC</span>
+    </div>
+  </header>
+
+  <!-- ============ HEADLINE ============ -->
+  <section aria-label="Headline metrics">
+    <div class="headline-strip">
+      <div class="headline-cell">
+        <div class="num">86.6%</div>
+        <div class="label">alert noise reduction</div>
+      </div>
+      <div class="headline-cell">
+        <div class="num">payments</div>
+        <div class="label">top risk service — score 62.6/100</div>
+      </div>
+      <div class="headline-cell">
+        <div class="num">0.64</div>
+        <div class="label">change-failure model AUC (5-fold CV)</div>
+      </div>
+      <div class="headline-cell">
+        <div class="num">2</div>
+        <div class="label">DORA metrics in Elite band of 4</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DORA ============ -->
+  <section aria-label="DORA metrics">
+    <div class="section-head">
+      <h2>DORA metrics</h2>
+      <div class="section-note">Computed to the official four-keys definitions, bands from the Accelerate State of DevOps reports.</div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <div class="k">Deployment frequency</div>
+        <div class="v">11.01<span style="font-size:14px;color:var(--ink-faint)">/day</span></div>
+        <div class="sub"><span class="pill elite">Elite</span> <span class="trend up">▲ 15.8% improving</span></div>
+      </div>
+      <div class="card">
+        <div class="k">Lead time for changes</div>
+        <div class="v">1.54<span style="font-size:14px;color:var(--ink-faint)">h median</span></div>
+        <div class="sub"><span class="pill high">High</span> <span class="trend down">▼ 5.2% worsening</span></div>
+      </div>
+      <div class="card">
+        <div class="k">Change failure rate</div>
+        <div class="v">7.87<span style="font-size:14px;color:var(--ink-faint)">%</span></div>
+        <div class="sub"><span class="pill elite">Elite</span> <span class="trend down">▼ 24.3% worsening</span></div>
+      </div>
+      <div class="card">
+        <div class="k">Time to restore</div>
+        <div class="v">0.6<span style="font-size:14px;color:var(--ink-faint)">h median</span></div>
+        <div class="sub"><span class="pill elite">Elite</span> <span class="trend up">▲ 13.2% improving</span></div>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>Change failure rate is Elite but worsening.</strong> A low absolute rate (7.87%) can still be trending
+      the wrong way (+24.3% over the period) — the band tells you where you stand, the trend tells you where you're
+      headed. Both matter for a call on whether to invest here now.
+    </div>
+  </section>
+
+  <!-- ============ NOISE REDUCTION ============ -->
+  <section aria-label="Alert noise reduction">
+    <div class="section-head">
+      <h2>Alert deduplication</h2>
+      <div class="section-note">Rolling time window + service-dependency blocking, then DBSCAN on message embeddings.</div>
+    </div>
+    <div class="card-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="card"><div class="k">Raw alerts</div><div class="v">41,572</div></div>
+      <div class="card"><div class="k">Distinct clusters</div><div class="v">5,550</div><div class="sub">754 real groups + 4,796 singletons</div></div>
+      <div class="card"><div class="k">Adjusted Rand Index</div><div class="v">0.793</div><div class="sub">vs. held-out ground truth</div></div>
+      <div class="card"><div class="k">Purity</div><div class="v">0.928</div><div class="sub">vs. held-out ground truth</div></div>
+    </div>
+    <div class="callout">
+      <strong>Ground truth was never fed to the clustering step</strong> — each alert's true incident label exists
+      only in the generator, used solely to score ARI and purity after the fact. 86.6% noise reduction means an
+      on-call engineer looks at ~5,550 things instead of 41,572.
+    </div>
+  </section>
+
+  <!-- ============ RISK RANKING ============ -->
+  <section aria-label="Service risk ranking">
+    <div class="section-head">
+      <h2>Where to spend engineering effort</h2>
+      <div class="section-note">Composite of incident frequency, MTTR p90, and change-failure rate — equally weighted, normalized within this fleet.</div>
+    </div>
+    <div class="barlist">
+      <div class="barrow top"><div class="name">payments-service</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="score">62.6</div></div>
+      <div class="barrow"><div class="name">checkout-service</div><div class="track"><div class="fill" style="width:87%"></div></div><div class="score">54.7</div></div>
+      <div class="barrow"><div class="name">search-service</div><div class="track"><div class="fill" style="width:77%"></div></div><div class="score">48.5</div></div>
+      <div class="barrow"><div class="name">recommendation-service</div><div class="track"><div class="fill" style="width:74%"></div></div><div class="score">46.5</div></div>
+      <div class="barrow"><div class="name">notification-service</div><div class="track"><div class="fill" style="width:62%"></div></div><div class="score">38.9</div></div>
+      <div class="barrow"><div class="name">api-gateway</div><div class="track"><div class="fill" style="width:59%"></div></div><div class="score">36.8</div></div>
+      <div class="barrow"><div class="name">auth-service</div><div class="track"><div class="fill" style="width:47%"></div></div><div class="score">29.6</div></div>
+      <div class="barrow"><div class="name">inventory-service</div><div class="track"><div class="fill" style="width:28%"></div></div><div class="score">17.8</div></div>
+    </div>
+  </section>
+
+  <!-- ============ MTTR ============ -->
+  <section aria-label="MTTR distribution">
+    <div class="section-head">
+      <h2>MTTR distribution, per service</h2>
+      <div class="section-note">Log-normal fit (picked over Weibull by AIC for every service here), reported as percentiles — not the mean.</div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Service</th><th>n</th><th>p50</th><th>p75</th><th>p90</th><th>p95</th><th>p99</th></tr></thead>
+        <tbody>
+          <tr><td class="svc">payments-service</td><td>30</td><td>94.9</td><td>153.8</td><td>237.5</td><td>308.0</td><td>501.4</td></tr>
+          <tr><td class="svc">checkout-service</td><td>55</td><td>57.2</td><td>95.8</td><td>152.3</td><td>201.1</td><td>338.4</td></tr>
+          <tr><td class="svc">recommendation-service</td><td>19</td><td>47.0</td><td>76.4</td><td>118.3</td><td>153.6</td><td>250.8</td></tr>
+          <tr><td class="svc">inventory-service</td><td>34</td><td>46.3</td><td>75.6</td><td>117.5</td><td>152.9</td><td>250.9</td></tr>
+          <tr><td class="svc">search-service</td><td>34</td><td>45.9</td><td>69.9</td><td>102.1</td><td>128.1</td><td>196.1</td></tr>
+          <tr><td class="svc">api-gateway</td><td>95</td><td>40.9</td><td>59.5</td><td>83.4</td><td>102.0</td><td>148.9</td></tr>
+          <tr><td class="svc">auth-service</td><td>74</td><td>30.8</td><td>44.9</td><td>63.2</td><td>77.5</td><td>113.6</td></tr>
+          <tr><td class="svc">notification-service</td><td>123</td><td>22.4</td><td>30.7</td><td>40.7</td><td>48.2</td><td>66.1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede" style="margin-top:16px;">All minutes. <strong style="color:var(--ink)">payments-service</strong>'s
+      p99 (501 min) is more than 3× its p50 (95 min) — the tail is where the pain lives, and averaging it away would
+      have hidden that.</p>
+  </section>
+
+  <!-- ============ CAPACITY ============ -->
+  <section aria-label="Capacity forecast">
+    <div class="section-head">
+      <h2>Capacity forecast</h2>
+      <div class="section-note">Linear trend on connection-pool utilization, gated on p &lt; 0.05 <em>and</em> r² ≥ 0.10 — a positive slope alone isn't a trend.</div>
+    </div>
+    <div class="chip-grid">
+      <div class="chip trend-real">
+        <div class="svc">payments-service</div>
+        <div class="status-flag">Breach projected</div>
+        <div class="detail">83.9% → 90% by <strong>2026-10-15</strong> · r²=0.90</div>
+      </div>
+      <div class="chip trend-real">
+        <div class="svc">checkout-service</div>
+        <div class="status-flag">Breach projected</div>
+        <div class="detail">71.1% → 90% by <strong>2027-05-09</strong> · r²=0.79</div>
+      </div>
+      <div class="chip trend-none">
+        <div class="svc">api-gateway</div>
+        <div class="status-flag">No significant trend</div>
+        <div class="detail">50.9% now · r²=0.02</div>
+      </div>
+      <div class="chip trend-none">
+        <div class="svc">inventory-service</div>
+        <div class="status-flag">No significant trend</div>
+        <div class="detail">45.1% now · r²=0.06</div>
+      </div>
+      <div class="chip trend-none">
+        <div class="svc">search-service</div>
+        <div class="status-flag">No significant trend</div>
+        <div class="detail">43.5% now · r²=0.06</div>
+      </div>
+      <div class="chip trend-none">
+        <div class="svc">notification-service</div>
+        <div class="status-flag">No significant trend</div>
+        <div class="detail">40.5% now · r²=0.00</div>
+      </div>
+      <div class="chip trend-none">
+        <div class="svc">auth-service</div>
+        <div class="status-flag">Stable / declining</div>
+        <div class="detail">46.2% now, slope −0.007/day</div>
+      </div>
+      <div class="chip trend-none">
+        <div class="svc">recommendation-service</div>
+        <div class="status-flag">Stable / declining</div>
+        <div class="detail">48.4% now, slope −0.004/day</div>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>The significance gate mattered.</strong> Before it was added, six flat services showed a confident
+      "breach projected" date — a technically-positive slope on ~365 noisy daily points reaches p &lt; 0.05 on
+      sample size alone, with r² as low as 0.02. Only the two services the data actually trends toward capacity
+      survive both gates.
+    </div>
+  </section>
+
+  <!-- ============ CHANGE FAILURE MODEL ============ -->
+  <section aria-label="Change failure model">
+    <div class="section-head">
+      <h2>Change-failure model</h2>
+      <div class="section-note">Logistic regression on deploy features, flagging risky changes before merge.</div>
+    </div>
+    <div class="card-grid" style="grid-template-columns: repeat(3,1fr); margin-bottom:26px;">
+      <div class="card"><div class="k">5-fold CV ROC AUC</div><div class="v">0.642<span style="font-size:13px;color:var(--ink-faint)"> ± 0.030</span></div></div>
+      <div class="card"><div class="k">Recall @ 0.5</div><div class="v">57.5%</div><div class="sub">of true failures caught</div></div>
+      <div class="card"><div class="k">Precision @ 0.5</div><div class="v">13.7%</div><div class="sub">vs. 7.9% base rate</div></div>
+    </div>
+    <div class="divlist">
+      <div class="divrow"><div class="name">service: payments</div><div class="divtrack"><div class="axis"></div><div class="bar pos" style="width:19.4%"></div></div><div class="val">+0.82</div></div>
+      <div class="divrow"><div class="name">service: recommendation</div><div class="divtrack"><div class="axis"></div><div class="bar pos" style="width:15.3%"></div></div><div class="val">+0.65</div></div>
+      <div class="divrow"><div class="name">service: search</div><div class="divtrack"><div class="axis"></div><div class="bar pos" style="width:12.6%"></div></div><div class="val">+0.53</div></div>
+      <div class="divrow"><div class="name">is_weekend</div><div class="divtrack"><div class="axis"></div><div class="bar pos" style="width:8.2%"></div></div><div class="val">+0.34</div></div>
+      <div class="divrow"><div class="name">commit_count</div><div class="divtrack"><div class="axis"></div><div class="bar pos" style="width:4.0%"></div></div><div class="val">+0.17</div></div>
+      <div class="divrow"><div class="name">log(lines changed)</div><div class="divtrack"><div class="axis"></div><div class="bar pos" style="width:3.5%"></div></div><div class="val">+0.15</div></div>
+      <div class="divrow"><div class="name">lead_time_hours</div><div class="divtrack"><div class="axis"></div><div class="bar neg" style="width:2.1%"></div></div><div class="val">−0.09</div></div>
+      <div class="divrow"><div class="name">service: inventory</div><div class="divtrack"><div class="axis"></div><div class="bar neg" style="width:25.1%"></div></div><div class="val">−1.06</div></div>
+    </div>
+    <div class="callout">
+      <strong>The calibration was checked, not assumed.</strong> The first calibration of the underlying deploy-risk
+      simulation produced a theoretical ceiling AUC of 0.53 (essentially unlearnable). Recalibrating the size/timing/
+      service-risk coefficients raised that ceiling to 0.67 before the model was ever trained — 0.64 CV AUC means
+      it's capturing most of the recoverable signal, not underperforming a hidden target.
+    </div>
+  </section>
+
+  <!-- ============ AI + EVAL ============ -->
+  <section aria-label="AI layer evaluation">
+    <div class="section-head">
+      <h2>AI layer — measured, not eyeballed</h2>
+      <div class="section-note">The LLM summarizes, categorizes and retrieves. It never computes a metric.</div>
+    </div>
+    <div class="eval-grid">
+      <div class="eval-card">
+        <h3>Root-cause categorization</h3>
+        <div class="method">100 hand-labeled postmortems, 8 categories</div>
+        <div class="compare-row"><div class="clabel">Keyword baseline</div><div class="compare-track"><div class="compare-fill a" style="width:52%"></div></div><div class="compare-val">52%</div></div>
+        <div class="compare-row"><div class="clabel">AI (this run)</div><div class="compare-track"><div class="compare-fill b" style="width:46%"></div></div><div class="compare-val">46%</div></div>
+        <div class="callout" style="margin-top:14px;">Run with the offline Mock provider (no API budget in this
+          environment) — its categorizer has no real reasoning, so 46% is just the majority-class rate. Point
+          <code>RELPLATFORM_PROVIDER</code> at Ollama or Gemini for a real number against the same baseline.</div>
+      </div>
+      <div class="eval-card">
+        <h3>RAG retrieval</h3>
+        <div class="method">Precision@3, 60 queries, alert-storm → alert-storm matching</div>
+        <div class="compare-row"><div class="clabel">Random baseline</div><div class="compare-track"><div class="compare-fill a" style="width:27%"></div></div><div class="compare-val">27%</div></div>
+        <div class="compare-row"><div class="clabel">This system</div><div class="compare-track"><div class="compare-fill b" style="width:69%"></div></div><div class="compare-val">69%</div></div>
+        <div class="callout" style="margin-top:14px;">Querying with the same alert-storm text used to index past
+          incidents (not their prose postmortems) took this from <strong>0.17</strong> — worse than guessing by
+          category frequency — to <strong>0.69</strong>. Full story in the repo README.</div>
+      </div>
+      <div class="eval-card">
+        <h3>Hallucination guard</h3>
+        <div class="method">Mandatory test: every number in the exec summary must trace to its input</div>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+          <span class="pill elite" style="font-size:13px; padding:6px 12px;">PASSING</span>
+          <span style="font-size:13px; color: var(--ink-dim);">tests/test_hallucination.py</span>
+        </div>
+        <div class="callout" style="margin-top:14px;">Enforced by extracting every number the model wrote and
+          checking it against the numbers it was given, tolerant of reformatting ("7%" for "7.29%") but not of
+          numbers with no source.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="cols">
+      <div>
+        <h3>About this snapshot</h3>
+        <p>This page is a frozen static export of one run of the platform — real numbers, computed once, not a live
+          dashboard. The full system (FastAPI + Streamlit, recomputable on demand) lives in the repo and runs
+          locally against a synthetic 12-month DuckDB dataset. Clustering ground truth, change-failure ground truth,
+          and every eval number here were checked against held-out labels the algorithms never saw — three real
+          bugs were caught and fixed this way (a purity formula, a leaked label in the RAG eval, and a noise-driven
+          capacity forecast) and are documented in the README with the fix.</p>
+      </div>
+      <div>
+        <h3>Repository</h3>
+        <ul>
+          <li><a href="../README.md">README — full architecture &amp; setup</a></li>
+          <li><a href="../src/relplatform">Source — src/relplatform</a></li>
+          <li><a href="../tests">Tests — pytest suite</a></li>
+          <li><a href="../data/eval_report.json">Raw eval report (JSON)</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="stack-note">Python 3.13 · DuckDB · pandas · scikit-learn · scipy · sentence-transformers (all-MiniLM-L6-v2) · Ollama / Gemini / Mock · FastAPI · Streamlit · pytest</div>
+  </footer>
+</div>
+
+</body>
+</html>

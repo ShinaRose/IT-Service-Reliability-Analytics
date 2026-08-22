@@ -1,0 +1,1801 @@
+id,service,severity,root_cause_category,postmortem_text
+INC-00086,auth-service,SEV3,deployment_regression,"## Summary
+This postmortem covers a minor service degradation in auth-service that began at 10:12 UTC on October 27, 2025 and affected all traffic routed through the affected region.
+
+## Root Cause
+A deploy to auth-service at 10:12 UTC introduced a change to the checkout pricing calculation. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 8 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-01178, which brought error rates back to baseline within 11 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 23 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00150,checkout-service,SEV1,deployment_regression,"## Summary
+On May 06, 2026, checkout-service experienced a critical, customer-facing outage that affected all traffic routed through the affected region.
+
+## Root Cause
+A deploy to checkout-service at 12:02 UTC introduced a change to the checkout pricing calculation. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 5 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 5 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to checkout-service.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-01935. Metrics returned to baseline 132 minutes later, and the incident was formally closed 193 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00109,auth-service,SEV3,deployment_regression,"## Summary
+Starting at 18:19 UTC on March 28, 2026, customers using auth-service began experiencing checkout and downstream flows.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01487, which changed the caching layer and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on error rate. The on-call engineer acknowledged in 9 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 9 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 16 minutes after the incident began.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00113,auth-service,SEV3,deployment_regression,"## Summary
+On April 18, 2026, auth-service experienced a minor service degradation that affected approximately 47% of requests during the incident window.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01535, which changed the rate limiter and did not account for a burst of concurrent requests under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 6 minutes and began triage immediately, correlating the alert storm across 5 affected services before identifying auth-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-01535, which brought error rates back to baseline within 23 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 31 minutes after the incident began.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00291,search-service,SEV3,deployment_regression,"## Summary
+Starting at 07:47 UTC on September 21, 2025, customers using search-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A deploy to search-service at 07:47 UTC introduced a change to the caching layer. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on error rate. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to search-service.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 13 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 26 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00257,notification-service,SEV4,deployment_regression,"## Summary
+Starting at 10:08 UTC on May 03, 2026, customers using notification-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03395, which changed the request-validation middleware and did not account for requests missing a legacy header under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 1 minutes into the incident on p99 latency. The on-call engineer acknowledged in 18 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-03395. Metrics returned to baseline 16 minutes later, and the incident was formally closed 22 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00202,notification-service,SEV1,deployment_regression,"## Summary
+This postmortem covers a critical, customer-facing outage in notification-service that began at 03:46 UTC on November 15, 2025 and affected requests originating from the mobile client.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-02642, which changed the rate limiter and did not account for a large-payload request body under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 2 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-02642, which brought error rates back to baseline within 47 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 74 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00072,api-gateway,SEV2,deployment_regression,"## Summary
+Starting at 15:52 UTC on August 01, 2026, customers using api-gateway began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A deploy to api-gateway at 15:52 UTC introduced a change to the retry logic. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 47 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 92 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00183,notification-service,SEV1,deployment_regression,"## Summary
+This postmortem covers a critical, customer-facing outage in notification-service that began at 13:24 UTC on August 27, 2025 and affected checkout and downstream flows.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-02294, which changed the retry logic and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 1 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-02294, which brought error rates back to baseline within 24 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 34 minutes after the incident began.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00012,api-gateway,SEV3,deployment_regression,"## Summary
+On October 18, 2025, api-gateway experienced a minor service degradation that affected approximately 39% of requests during the incident window.
+
+## Root Cause
+A deploy to api-gateway at 17:29 UTC introduced a change to the request-validation middleware. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 13 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-00149, which brought error rates back to baseline within 37 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 53 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00258,notification-service,SEV2,deployment_regression,"## Summary
+Starting at 13:13 UTC on May 03, 2026, customers using notification-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03399, which changed the checkout pricing calculation and did not account for a burst of concurrent requests under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on p99 latency. The on-call engineer acknowledged in 5 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-03399, which brought error rates back to baseline within 25 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 29 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00151,checkout-service,SEV4,deployment_regression,"## Summary
+Starting at 15:01 UTC on May 16, 2026, customers using checkout-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A deploy to checkout-service at 15:01 UTC introduced a change to the rate limiter. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 5 minutes into the incident on queue depth. The on-call engineer acknowledged in 7 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to checkout-service.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 25 minutes later, and the incident was formally closed 37 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00018,api-gateway,SEV4,deployment_regression,"## Summary
+On November 23, 2025, api-gateway experienced a low-impact anomaly that affected read and write requests for a subset of users.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-00247, which changed the checkout pricing calculation and did not account for requests missing a legacy header under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 16 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-00247. Metrics returned to baseline 12 minutes later, and the incident was formally closed 20 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00065,api-gateway,SEV3,deployment_regression,"## Summary
+Starting at 17:50 UTC on June 29, 2026, customers using api-gateway began experiencing checkout and downstream flows.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-00920, which changed the session-handling code and did not account for requests missing a legacy header under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 2 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 11 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-00920, which brought error rates back to baseline within 12 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 23 minutes after the incident began.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00161,checkout-service,SEV3,deployment_regression,"## Summary
+Starting at 19:31 UTC on August 02, 2026, customers using checkout-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01998, which changed the checkout pricing calculation and did not account for a large-payload request body under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 5 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to checkout-service.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 22 minutes later, and the incident was formally closed 40 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00172,inventory-service,SEV2,deployment_regression,"## Summary
+This postmortem covers a major service degradation in inventory-service that began at 12:45 UTC on September 25, 2025 and affected all traffic routed through the affected region.
+
+## Root Cause
+A deploy to inventory-service at 12:45 UTC introduced a change to the caching layer. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 5 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying inventory-service as the origin.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-02090. Metrics returned to baseline 18 minutes later, and the incident was formally closed 25 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00144,checkout-service,SEV4,deployment_regression,"## Summary
+Starting at 12:39 UTC on December 30, 2025, customers using checkout-service began experiencing approximately 11% of requests during the incident window.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01847, which changed the rate limiter and did not account for a large-payload request body under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 2 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 5 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to checkout-service.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 35 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 57 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00229,notification-service,SEV3,deployment_regression,"## Summary
+Starting at 13:27 UTC on February 20, 2026, customers using notification-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03051, which changed the caching layer and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 1 minutes into the incident on error rate. The on-call engineer acknowledged in 9 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-03051, which brought error rates back to baseline within 17 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 24 minutes after the incident began.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00213,notification-service,SEV4,deployment_regression,"## Summary
+Starting at 15:55 UTC on December 10, 2025, customers using notification-service began experiencing approximately 53% of requests during the incident window.
+
+## Root Cause
+A deploy to notification-service at 15:55 UTC introduced a change to the checkout pricing calculation. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 4 minutes later, and the incident was formally closed 9 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00088,auth-service,SEV3,deployment_regression,"## Summary
+This postmortem covers a minor service degradation in auth-service that began at 01:15 UTC on November 20, 2025 and affected read and write requests for a subset of users.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01223, which changed the caching layer and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 1 minutes into the incident on p99 latency. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-01223, which brought error rates back to baseline within 14 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 22 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00280,notification-service,SEV3,deployment_regression,"## Summary
+On July 26, 2026, notification-service experienced a minor service degradation that affected approximately 38% of requests during the incident window.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03773, which changed the rate limiter and did not account for a burst of concurrent requests under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 2 minutes into the incident on error rate. The on-call engineer acknowledged in 14 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-03773, which brought error rates back to baseline within 17 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 32 minutes after the incident began.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00157,checkout-service,SEV3,deployment_regression,"## Summary
+Starting at 10:24 UTC on July 01, 2026, customers using checkout-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01976, which changed the request-validation middleware and did not account for requests missing a legacy header under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 9 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying checkout-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-01976, which brought error rates back to baseline within 65 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 115 minutes after the incident began.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00285,notification-service,SEV1,deployment_regression,"## Summary
+On August 02, 2026, notification-service experienced a critical, customer-facing outage that affected approximately 18% of requests during the incident window.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03807, which changed the caching layer and did not account for requests missing a legacy header under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 2 minutes into the incident on error rate. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-03807, which brought error rates back to baseline within 30 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 41 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00049,api-gateway,SEV3,deployment_regression,"## Summary
+On April 11, 2026, api-gateway experienced a minor service degradation that affected all traffic routed through the affected region.
+
+## Root Cause
+A deploy to api-gateway at 18:33 UTC introduced a change to the session-handling code. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 42 minutes later, and the incident was formally closed 53 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00135,checkout-service,SEV2,deployment_regression,"## Summary
+Starting at 13:08 UTC on September 29, 2025, customers using checkout-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A deploy to checkout-service at 13:08 UTC introduced a change to the checkout pricing calculation. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on queue depth. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to checkout-service.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-01787. Metrics returned to baseline 99 minutes later, and the incident was formally closed 112 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00036,api-gateway,SEV4,deployment_regression,"## Summary
+Starting at 15:20 UTC on February 17, 2026, customers using api-gateway began experiencing all traffic routed through the affected region.
+
+## Root Cause
+A deploy to api-gateway at 15:20 UTC introduced a change to the session-handling code. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 12 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-00495. Metrics returned to baseline 41 minutes later, and the incident was formally closed 53 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00209,notification-service,SEV1,deployment_regression,"## Summary
+On December 05, 2025, notification-service experienced a critical, customer-facing outage that affected all traffic routed through the affected region.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-02718, which changed the rate limiter and did not account for a burst of concurrent requests under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 1 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 15 minutes later, and the incident was formally closed 24 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00256,notification-service,SEV2,deployment_regression,"## Summary
+Starting at 06:28 UTC on May 03, 2026, customers using notification-service began experiencing approximately 65% of requests during the incident window.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03394, which changed the checkout pricing calculation and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-03394. Metrics returned to baseline 16 minutes later, and the incident was formally closed 21 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00263,notification-service,SEV4,deployment_regression,"## Summary
+This postmortem covers a low-impact anomaly in notification-service that began at 06:22 UTC on May 27, 2026 and affected approximately 47% of requests during the incident window.
+
+## Root Cause
+A deploy to notification-service at 06:22 UTC introduced a change to the caching layer. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on p99 latency. The on-call engineer acknowledged in 12 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 12 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 19 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00024,api-gateway,SEV3,deployment_regression,"## Summary
+Starting at 13:13 UTC on December 24, 2025, customers using api-gateway began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A deploy to api-gateway at 13:13 UTC introduced a change to the session-handling code. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 28 minutes later, and the incident was formally closed 42 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00167,payments-service,SEV4,deployment_regression,"## Summary
+Starting at 14:27 UTC on January 31, 2026, customers using payments-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+A deploy to payments-service at 14:27 UTC introduced a change to the caching layer. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 15 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying payments-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 23 minutes later, and the incident was formally closed 30 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00252,notification-service,SEV4,deployment_regression,"## Summary
+Starting at 22:25 UTC on April 20, 2026, customers using notification-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+A deploy to notification-service at 22:25 UTC introduced a change to the checkout pricing calculation. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 5 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 12 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-03351, which brought error rates back to baseline within 13 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 22 minutes after the incident began.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00204,notification-service,SEV2,deployment_regression,"## Summary
+Starting at 11:09 UTC on November 20, 2025, customers using notification-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A deploy to notification-service at 11:09 UTC introduced a change to the rate limiter. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 2 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-02662. Metrics returned to baseline 26 minutes later, and the incident was formally closed 45 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- insufficient canary analysis before full rollout
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00217,notification-service,SEV1,deployment_regression,"## Summary
+On January 06, 2026, notification-service experienced a critical, customer-facing outage that affected requests originating from the mobile client.
+
+## Root Cause
+A deploy to notification-service at 12:15 UTC introduced a change to the checkout pricing calculation. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 3 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 7 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 11 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00276,notification-service,SEV1,deployment_regression,"## Summary
+Starting at 17:01 UTC on July 12, 2026, customers using notification-service began experiencing checkout and downstream flows.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03716, which changed the rate limiter and did not account for a large-payload request body under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on queue depth. The on-call engineer acknowledged in 2 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-03716. Metrics returned to baseline 13 minutes later, and the incident was formally closed 24 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00163,payments-service,SEV3,deployment_regression,"## Summary
+This postmortem covers a minor service degradation in payments-service that began at 15:10 UTC on October 05, 2025 and affected approximately 11% of requests during the incident window.
+
+## Root Cause
+A deploy to payments-service at 15:10 UTC introduced a change to the caching layer. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 9 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying payments-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-02014, which brought error rates back to baseline within 64 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 122 minutes after the incident began.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00210,notification-service,SEV3,deployment_regression,"## Summary
+Starting at 14:37 UTC on December 05, 2025, customers using notification-service began experiencing requests originating from the mobile client.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-02721, which changed the rate limiter and did not account for a burst of concurrent requests under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 13 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+Mitigation was applied by rolling back deploy DEP-02721. Metrics returned to baseline 20 minutes later, and the incident was formally closed 33 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00297,recommendation-service,SEV3,deployment_regression,"## Summary
+On September 14, 2025, recommendation-service experienced a minor service degradation that affected approximately 25% of requests during the incident window.
+
+## Root Cause
+A deploy to recommendation-service at 14:18 UTC introduced a change to the rate limiter. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 6 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying recommendation-service as the origin.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 8 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 15 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- load test suite did not cover the changed code path
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00200,notification-service,SEV2,deployment_regression,"## Summary
+On November 13, 2025, notification-service experienced a major service degradation that affected checkout and downstream flows.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-02632, which changed the rate limiter and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 22 minutes later, and the incident was formally closed 32 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- no automated rollback trigger on error-rate regression
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Extend the canary stage to a minimum of 30 minutes with automated error-budget gating."
+INC-00078,api-gateway,SEV1,deployment_regression,"## Summary
+Starting at 17:02 UTC on August 17, 2026, customers using api-gateway began experiencing requests originating from the mobile client.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01057, which changed the session-handling code and did not account for requests missing a legacy header under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 1 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 48 minutes later, and the incident was formally closed 92 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- insufficient canary analysis before full rollout
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00278,notification-service,SEV4,deployment_regression,"## Summary
+On July 22, 2026, notification-service experienced a low-impact anomaly that affected all traffic routed through the affected region.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-03759, which changed the request-validation middleware and did not account for null values in an optional field under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 8 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 5 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 10 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00299,recommendation-service,SEV3,deployment_regression,"## Summary
+On February 21, 2026, recommendation-service experienced a minor service degradation that affected approximately 40% of requests during the incident window.
+
+## Root Cause
+A deploy to recommendation-service at 10:36 UTC introduced a change to the request-validation middleware. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 9 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to recommendation-service.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 16 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 32 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00265,notification-service,SEV3,deployment_regression,"## Summary
+On June 04, 2026, notification-service experienced a minor service degradation that affected requests originating from the mobile client.
+
+## Root Cause
+A deploy to notification-service at 12:44 UTC introduced a change to the rate limiter. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 7 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-03544, which brought error rates back to baseline within 19 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 31 minutes after the incident began.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00030,api-gateway,SEV4,deployment_regression,"## Summary
+This postmortem covers a low-impact anomaly in api-gateway that began at 10:17 UTC on January 24, 2026 and affected all traffic routed through the affected region.
+
+## Root Cause
+A deploy to api-gateway at 10:17 UTC introduced a change to the retry logic. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+Mitigation was applied by reverting the offending change and redeploying the previous version. Metrics returned to baseline 66 minutes later, and the incident was formally closed 84 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00100,auth-service,SEV3,deployment_regression,"## Summary
+Starting at 14:05 UTC on January 31, 2026, customers using auth-service began experiencing approximately 24% of requests during the incident window.
+
+## Root Cause
+The root cause was a regression introduced by deploy DEP-01379, which changed the checkout pricing calculation and did not account for a large-payload request body under production traffic patterns. The new code path was exercised far more heavily in production than in staging, and error rates began climbing within minutes of rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 4 minutes and began triage immediately, correlating the alert storm across 5 affected services before identifying auth-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling back deploy DEP-01379, which brought error rates back to baseline within 26 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 37 minutes after the incident began.
+
+## Contributing Factors
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+- no automated rollback trigger on error-rate regression
+
+## Preventive Action
+Expand load test coverage to include the affected request path."
+INC-00244,notification-service,SEV2,deployment_regression,"## Summary
+On March 22, 2026, notification-service experienced a major service degradation that affected all traffic routed through the affected region.
+
+## Root Cause
+A deploy to notification-service at 14:32 UTC introduced a change to the rate limiter. The change passed CI but the test suite did not reproduce the production traffic shape, and the regression only became visible once real user traffic hit the new code path.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on p99 latency. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+The team mitigated impact by reverting the offending change and redeploying the previous version, which brought error rates back to baseline within 13 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 23 minutes after the incident began.
+
+## Contributing Factors
+- load test suite did not cover the changed code path
+- feature flag was enabled for 100% of traffic instead of a gradual ramp
+
+## Preventive Action
+Add an automatic rollback trigger keyed to error-rate and latency slos."
+INC-00324,auth-service,SEV3,resource_exhaustion,"## Summary
+This postmortem covers a minor service degradation in auth-service that began at 17:42 UTC on November 13, 2025 and affected checkout and downstream flows.
+
+## Root Cause
+The proximate cause was exhaustion of the database connection pool on auth-service. Utilization had been trending upward for 10 hours, likely due to a scheduled batch job that was not accounted for in capacity planning, but no alert fired until the pool was already at capacity.
+
+## Detection & Response
+Automated monitoring fired 2 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+Mitigation was applied by manually scaling out the affected service. Metrics returned to baseline 17 minutes later, and the incident was formally closed 20 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- garbage collection pauses compounded under sustained load
+- connection pool size was not scaled with recent traffic growth
+
+## Preventive Action
+Right-size the connection pool and add alerting at 70% utilization."
+INC-00454,recommendation-service,SEV3,resource_exhaustion,"## Summary
+On December 30, 2025, recommendation-service experienced a minor service degradation that affected all traffic routed through the affected region.
+
+## Root Cause
+The proximate cause was exhaustion of the message queue on recommendation-service. Utilization had been trending upward for 7 hours, likely due to a slow leak in a recently deployed background job, but no alert fired until the pool was already at capacity.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 13 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying recommendation-service as the origin.
+
+## Resolution
+The team mitigated impact by manually scaling out the affected service, which brought error rates back to baseline within 30 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 48 minutes after the incident began.
+
+## Contributing Factors
+- autoscaling policy had a ceiling that was never revisited
+- a slow memory leak in a background worker went undetected for weeks
+
+## Preventive Action
+Raise the autoscaling ceiling and review it quarterly against traffic growth."
+INC-00435,search-service,SEV3,resource_exhaustion,"## Summary
+Starting at 14:17 UTC on October 23, 2025, customers using search-service began experiencing requests originating from the mobile client.
+
+## Root Cause
+The proximate cause was exhaustion of file descriptors on search-service. Utilization had been trending upward for 14 hours, likely due to a slow leak in a recently deployed background job, but no alert fired until the pool was already at capacity.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on queue depth. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to search-service.
+
+## Resolution
+The team mitigated impact by manually scaling out the affected service, which brought error rates back to baseline within 31 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 39 minutes after the incident began.
+
+## Contributing Factors
+- connection pool size was not scaled with recent traffic growth
+- garbage collection pauses compounded under sustained load
+
+## Preventive Action
+Raise the autoscaling ceiling and review it quarterly against traffic growth."
+INC-00446,search-service,SEV2,resource_exhaustion,"## Summary
+Starting at 13:19 UTC on May 10, 2026, customers using search-service began experiencing checkout and downstream flows.
+
+## Root Cause
+file descriptors on search-service climbed steadily over the preceding 11 hours before crossing a critical threshold, at which point request latency degraded sharply and a portion of requests began timing out. Once the primary instances were saturated, retries from upstream callers made the situation worse.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 6 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying search-service as the origin.
+
+## Resolution
+The team mitigated impact by manually scaling out the affected service, which brought error rates back to baseline within 45 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 85 minutes after the incident began.
+
+## Contributing Factors
+- a slow memory leak in a background worker went undetected for weeks
+- autoscaling policy had a ceiling that was never revisited
+
+## Preventive Action
+Right-size the connection pool and add alerting at 70% utilization."
+INC-00305,api-gateway,SEV3,resource_exhaustion,"## Summary
+This postmortem covers a minor service degradation in api-gateway that began at 22:42 UTC on January 02, 2026 and affected requests originating from the mobile client.
+
+## Root Cause
+file descriptors on api-gateway climbed steadily over the preceding 10 hours before crossing a critical threshold, at which point request latency degraded sharply and a portion of requests began timing out. Once the primary instances were saturated, retries from upstream callers made the situation worse.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on p99 latency. The on-call engineer acknowledged in 12 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+The team mitigated impact by restarting the affected instances and temporarily raising the resource ceiling, which brought error rates back to baseline within 40 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 72 minutes after the incident began.
+
+## Contributing Factors
+- autoscaling policy had a ceiling that was never revisited
+- connection pool size was not scaled with recent traffic growth
+
+## Preventive Action
+Right-size the connection pool and add alerting at 70% utilization."
+INC-00377,payments-service,SEV4,resource_exhaustion,"## Summary
+Starting at 07:40 UTC on February 23, 2026, customers using payments-service began experiencing checkout and downstream flows.
+
+## Root Cause
+the database connection pool on payments-service climbed steadily over the preceding 33 hours before crossing a critical threshold, at which point request latency degraded sharply and a portion of requests began timing out. Once the primary instances were saturated, retries from upstream callers made the situation worse.
+
+## Detection & Response
+Automated monitoring fired 5 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 7 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to payments-service.
+
+## Resolution
+The team mitigated impact by manually scaling out the affected service, which brought error rates back to baseline within 15 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 25 minutes after the incident began.
+
+## Contributing Factors
+- garbage collection pauses compounded under sustained load
+- connection pool size was not scaled with recent traffic growth
+
+## Preventive Action
+Add a scheduled memory-leak regression test to the release pipeline."
+INC-00453,recommendation-service,SEV4,resource_exhaustion,"## Summary
+Starting at 22:45 UTC on September 09, 2025, customers using recommendation-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+The proximate cause was exhaustion of the thread pool on recommendation-service. Utilization had been trending upward for 10 hours, likely due to a scheduled batch job that was not accounted for in capacity planning, but no alert fired until the pool was already at capacity.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 15 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to recommendation-service.
+
+## Resolution
+Mitigation was applied by restarting the affected instances and temporarily raising the resource ceiling. Metrics returned to baseline 13 minutes later, and the incident was formally closed 19 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- autoscaling policy had a ceiling that was never revisited
+- garbage collection pauses compounded under sustained load
+
+## Preventive Action
+Right-size the connection pool and add alerting at 70% utilization."
+INC-00413,notification-service,SEV3,resource_exhaustion,"## Summary
+Starting at 22:31 UTC on March 19, 2026, customers using notification-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+The proximate cause was exhaustion of the thread pool on notification-service. Utilization had been trending upward for 27 hours, likely due to a scheduled batch job that was not accounted for in capacity planning, but no alert fired until the pool was already at capacity.
+
+## Detection & Response
+Automated monitoring fired 2 minutes into the incident on error rate. The on-call engineer acknowledged in 6 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by restarting the affected instances and temporarily raising the resource ceiling. Metrics returned to baseline 16 minutes later, and the incident was formally closed 24 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- garbage collection pauses compounded under sustained load
+- a slow memory leak in a background worker went undetected for weeks
+
+## Preventive Action
+Raise the autoscaling ceiling and review it quarterly against traffic growth."
+INC-00326,auth-service,SEV1,resource_exhaustion,"## Summary
+On November 19, 2025, auth-service experienced a critical, customer-facing outage that affected read and write requests for a subset of users.
+
+## Root Cause
+The proximate cause was exhaustion of heap memory on auth-service. Utilization had been trending upward for 20 hours, likely due to a scheduled batch job that was not accounted for in capacity planning, but no alert fired until the pool was already at capacity.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 1 minutes and began triage immediately, correlating the alert storm across 5 affected services before identifying auth-service as the origin.
+
+## Resolution
+The team mitigated impact by manually scaling out the affected service, which brought error rates back to baseline within 24 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 36 minutes after the incident began.
+
+## Contributing Factors
+- autoscaling policy had a ceiling that was never revisited
+- a slow memory leak in a background worker went undetected for weeks
+
+## Preventive Action
+Right-size the connection pool and add alerting at 70% utilization."
+INC-00357,checkout-service,SEV2,third_party_dependency,"## Summary
+Starting at 04:42 UTC on June 21, 2026, customers using checkout-service began experiencing approximately 14% of requests during the incident window.
+
+## Root Cause
+An outage at SendGridRelay degraded transactional email delivery for checkout-service. The dependency is not currently wrapped in a circuit breaker, so failed calls consumed request threads until the service itself became unresponsive.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 5 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying checkout-service as the origin.
+
+## Resolution
+Mitigation was applied by failing over to the backup provider. Metrics returned to baseline 72 minutes later, and the incident was formally closed 99 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- no circuit breaker was configured for the upstream vendor call
+- the vendor's status page did not reflect the outage for 40 minutes
+
+## Preventive Action
+Subscribe to the vendor's status api rather than polling their public status page."
+INC-00389,inventory-service,SEV1,third_party_dependency,"## Summary
+This postmortem covers a critical, customer-facing outage in inventory-service that began at 02:32 UTC on June 05, 2026 and affected approximately 17% of requests during the incident window.
+
+## Root Cause
+TwilioVoice, a third-party dependency used by inventory-service for two-factor SMS delivery, began returning elevated error rates and increased latency. Because inventory-service calls TwilioVoice synchronously on the critical path, the degradation propagated directly into user-facing latency and error rates.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 2 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying inventory-service as the origin.
+
+## Resolution
+Mitigation was applied by enabling a temporary in-house fallback path. Metrics returned to baseline 55 minutes later, and the incident was formally closed 63 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the vendor's status page did not reflect the outage for 40 minutes
+- retries without backoff amplified load on the degraded vendor
+
+## Preventive Action
+Subscribe to the vendor's status api rather than polling their public status page."
+INC-00345,checkout-service,SEV4,third_party_dependency,"## Summary
+Starting at 04:54 UTC on March 03, 2026, customers using checkout-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+StripeConnectAPI, a third-party dependency used by checkout-service for payment authorization, began returning elevated error rates and increased latency. Because checkout-service calls StripeConnectAPI synchronously on the critical path, the degradation propagated directly into user-facing latency and error rates.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 15 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying checkout-service as the origin.
+
+## Resolution
+Mitigation was applied by failing over to the backup provider. Metrics returned to baseline 41 minutes later, and the incident was formally closed 51 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- timeout values for the vendor API were set too high
+- the vendor's status page did not reflect the outage for 40 minutes
+
+## Preventive Action
+Cap retries with exponential backoff and jitter."
+INC-00426,search-service,SEV3,third_party_dependency,"## Summary
+This postmortem covers a minor service degradation in search-service that began at 09:27 UTC on September 23, 2025 and affected read and write requests for a subset of users.
+
+## Root Cause
+CloudCDN-Edge, a third-party dependency used by search-service for static asset delivery, began returning elevated error rates and increased latency. Because search-service calls CloudCDN-Edge synchronously on the critical path, the degradation propagated directly into user-facing latency and error rates.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on p99 latency. The on-call engineer acknowledged in 11 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to search-service.
+
+## Resolution
+Mitigation was applied by enabling a temporary in-house fallback path. Metrics returned to baseline 21 minutes later, and the incident was formally closed 35 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- timeout values for the vendor API were set too high
+- retries without backoff amplified load on the degraded vendor
+
+## Preventive Action
+Add a circuit breaker with sane timeout and fallback behavior for the vendor call."
+INC-00303,api-gateway,SEV4,third_party_dependency,"## Summary
+Starting at 12:17 UTC on June 15, 2026, customers using api-gateway began experiencing requests originating from the mobile client.
+
+## Root Cause
+CloudCDN-Edge, a third-party dependency used by api-gateway for static asset delivery, began returning elevated error rates and increased latency. Because api-gateway calls CloudCDN-Edge synchronously on the critical path, the degradation propagated directly into user-facing latency and error rates.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 5 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+The team mitigated impact by enabling a temporary in-house fallback path, which brought error rates back to baseline within 12 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 15 minutes after the incident began.
+
+## Contributing Factors
+- no circuit breaker was configured for the upstream vendor call
+- the vendor's status page did not reflect the outage for 40 minutes
+
+## Preventive Action
+Subscribe to the vendor's status api rather than polling their public status page."
+INC-00367,payments-service,SEV3,third_party_dependency,"## Summary
+On December 29, 2025, payments-service experienced a minor service degradation that affected approximately 45% of requests during the incident window.
+
+## Root Cause
+CloudCDN-Edge, a third-party dependency used by payments-service for static asset delivery, began returning elevated error rates and increased latency. Because payments-service calls CloudCDN-Edge synchronously on the critical path, the degradation propagated directly into user-facing latency and error rates.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 9 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to payments-service.
+
+## Resolution
+Mitigation was applied by enabling a temporary in-house fallback path. Metrics returned to baseline 16 minutes later, and the incident was formally closed 31 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the vendor's status page did not reflect the outage for 40 minutes
+- retries without backoff amplified load on the degraded vendor
+
+## Preventive Action
+Cap retries with exponential backoff and jitter."
+INC-00125,auth-service,SEV1,configuration_error,"## Summary
+Starting at 06:29 UTC on June 28, 2026, customers using auth-service began experiencing checkout and downstream flows.
+
+## Root Cause
+During a configuration update to auth-service, a value copied from the wrong environment was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 28 minutes later, and the incident was formally closed 35 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the config change was not peer reviewed
+- config validation did not catch the malformed value before rollout
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00114,auth-service,SEV2,configuration_error,"## Summary
+Starting at 13:49 UTC on April 25, 2026, customers using auth-service began experiencing requests originating from the mobile client.
+
+## Root Cause
+A configuration change to the session-handling code on auth-service contained a value copied from the wrong environment. The change was applied during a routine maintenance window and was not caught by existing validation, causing request timeouts for a subset of users almost immediately after rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 3 minutes and began triage immediately, correlating the alert storm across 5 affected services before identifying auth-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the configuration change. Metrics returned to baseline 19 minutes later, and the incident was formally closed 27 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the config change was not peer reviewed
+- config validation did not catch the malformed value before rollout
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00002,api-gateway,SEV3,configuration_error,"## Summary
+Starting at 16:06 UTC on September 05, 2025, customers using api-gateway began experiencing approximately 63% of requests during the incident window.
+
+## Root Cause
+During a configuration update to api-gateway, a value copied from the wrong environment was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 27 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+The team mitigated impact by reverting the configuration change, which brought error rates back to baseline within 23 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 33 minutes after the incident began.
+
+## Contributing Factors
+- the change was applied directly in the environment instead of through the pipeline
+- two teams pushed conflicting configuration within the same maintenance window
+
+## Preventive Action
+Add schema validation for configuration values before rollout."
+INC-00235,notification-service,SEV3,configuration_error,"## Summary
+Starting at 17:03 UTC on March 06, 2026, customers using notification-service began experiencing checkout and downstream flows.
+
+## Root Cause
+During a configuration update to notification-service, a stale credential that had already been rotated was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+The incident was detected by automated alerting 2 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 12 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 13 minutes later, and the incident was formally closed 15 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- two teams pushed conflicting configuration within the same maintenance window
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00141,checkout-service,SEV4,configuration_error,"## Summary
+On November 24, 2025, checkout-service experienced a low-impact anomaly that affected checkout and downstream flows.
+
+## Root Cause
+A configuration change to the request-validation middleware on checkout-service contained a value copied from the wrong environment. The change was applied during a routine maintenance window and was not caught by existing validation, causing elevated 5xx error rates almost immediately after rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 9 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying checkout-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling forward with the corrected configuration, which brought error rates back to baseline within 6 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 11 minutes after the incident began.
+
+## Contributing Factors
+- two teams pushed conflicting configuration within the same maintenance window
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00195,notification-service,SEV3,configuration_error,"## Summary
+This postmortem covers a minor service degradation in notification-service that began at 12:21 UTC on October 12, 2025 and affected all traffic routed through the affected region.
+
+## Root Cause
+A configuration change to the session-handling code on notification-service contained a typo in a numeric threshold. The change was applied during a routine maintenance window and was not caught by existing validation, causing elevated 5xx error rates almost immediately after rollout.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on p99 latency. The on-call engineer acknowledged in 6 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 10 minutes later, and the incident was formally closed 18 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- config validation did not catch the malformed value before rollout
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00155,checkout-service,SEV3,configuration_error,"## Summary
+Starting at 15:22 UTC on June 06, 2026, customers using checkout-service began experiencing requests originating from the mobile client.
+
+## Root Cause
+A configuration change to the request-validation middleware on checkout-service contained a stale credential that had already been rotated. The change was applied during a routine maintenance window and was not caught by existing validation, causing a sharp rise in p99 latency almost immediately after rollout.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to checkout-service.
+
+## Resolution
+Mitigation was applied by reverting the configuration change. Metrics returned to baseline 16 minutes later, and the incident was formally closed 27 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- config validation did not catch the malformed value before rollout
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00174,inventory-service,SEV3,configuration_error,"## Summary
+On February 15, 2026, inventory-service experienced a minor service degradation that affected read and write requests for a subset of users.
+
+## Root Cause
+A configuration change to the session-handling code on inventory-service contained a stale credential that had already been rotated. The change was applied during a routine maintenance window and was not caught by existing validation, causing elevated 5xx error rates almost immediately after rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 10 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying inventory-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the configuration change. Metrics returned to baseline 17 minutes later, and the incident was formally closed 23 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- two teams pushed conflicting configuration within the same maintenance window
+- config validation did not catch the malformed value before rollout
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00067,api-gateway,SEV3,configuration_error,"## Summary
+Starting at 21:16 UTC on July 01, 2026, customers using api-gateway began experiencing checkout and downstream flows.
+
+## Root Cause
+During a configuration update to api-gateway, a stale credential that had already been rotated was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 4 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 24 minutes later, and the incident was formally closed 48 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- config validation did not catch the malformed value before rollout
+- two teams pushed conflicting configuration within the same maintenance window
+
+## Preventive Action
+Add schema validation for configuration values before rollout."
+INC-00055,api-gateway,SEV4,configuration_error,"## Summary
+On May 06, 2026, api-gateway experienced a low-impact anomaly that affected checkout and downstream flows.
+
+## Root Cause
+A configuration change to the request-validation middleware on api-gateway contained a value copied from the wrong environment. The change was applied during a routine maintenance window and was not caught by existing validation, causing request timeouts for a subset of users almost immediately after rollout.
+
+## Detection & Response
+Automated monitoring fired 5 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 9 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 15 minutes later, and the incident was formally closed 24 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- config validation did not catch the malformed value before rollout
+- two teams pushed conflicting configuration within the same maintenance window
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00288,notification-service,SEV4,configuration_error,"## Summary
+This postmortem covers a low-impact anomaly in notification-service that began at 13:55 UTC on August 16, 2026 and affected all traffic routed through the affected region.
+
+## Root Cause
+A configuration change to the retry logic on notification-service contained a value copied from the wrong environment. The change was applied during a routine maintenance window and was not caught by existing validation, causing request timeouts for a subset of users almost immediately after rollout.
+
+## Detection & Response
+Automated monitoring fired 5 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 21 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 22 minutes later, and the incident was formally closed 42 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the config change was not peer reviewed
+- config validation did not catch the malformed value before rollout
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00192,notification-service,SEV3,configuration_error,"## Summary
+This postmortem covers a minor service degradation in notification-service that began at 13:24 UTC on October 08, 2025 and affected requests originating from the mobile client.
+
+## Root Cause
+A configuration change to the caching layer on notification-service contained a stale credential that had already been rotated. The change was applied during a routine maintenance window and was not caught by existing validation, causing elevated 5xx error rates almost immediately after rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 5 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+The team mitigated impact by rolling forward with the corrected configuration, which brought error rates back to baseline within 17 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 24 minutes after the incident began.
+
+## Contributing Factors
+- config validation did not catch the malformed value before rollout
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00164,payments-service,SEV2,configuration_error,"## Summary
+Starting at 08:07 UTC on October 29, 2025, customers using payments-service began experiencing requests originating from the mobile client.
+
+## Root Cause
+A configuration change to the caching layer on payments-service contained a value copied from the wrong environment. The change was applied during a routine maintenance window and was not caught by existing validation, causing request timeouts for a subset of users almost immediately after rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 4 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying payments-service as the origin.
+
+## Resolution
+Mitigation was applied by rolling forward with the corrected configuration. Metrics returned to baseline 36 minutes later, and the incident was formally closed 57 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the config change was not peer reviewed
+- two teams pushed conflicting configuration within the same maintenance window
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00136,checkout-service,SEV4,configuration_error,"## Summary
+On October 25, 2025, checkout-service experienced a low-impact anomaly that affected requests originating from the mobile client.
+
+## Root Cause
+A configuration change to the session-handling code on checkout-service contained a typo in a numeric threshold. The change was applied during a routine maintenance window and was not caught by existing validation, causing elevated 5xx error rates almost immediately after rollout.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying checkout-service as the origin.
+
+## Resolution
+The team mitigated impact by reverting the configuration change, which brought error rates back to baseline within 101 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 135 minutes after the incident began.
+
+## Contributing Factors
+- the change was applied directly in the environment instead of through the pipeline
+- two teams pushed conflicting configuration within the same maintenance window
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00118,auth-service,SEV4,configuration_error,"## Summary
+This postmortem covers a low-impact anomaly in auth-service that began at 12:51 UTC on May 03, 2026 and affected checkout and downstream flows.
+
+## Root Cause
+A configuration change to the caching layer on auth-service contained a stale credential that had already been rotated. The change was applied during a routine maintenance window and was not caught by existing validation, causing a queue backlog that grew unbounded almost immediately after rollout.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on queue depth. The on-call engineer acknowledged in 7 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+The team mitigated impact by reverting the configuration change, which brought error rates back to baseline within 18 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 37 minutes after the incident began.
+
+## Contributing Factors
+- config validation did not catch the malformed value before rollout
+- two teams pushed conflicting configuration within the same maintenance window
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00196,notification-service,SEV3,configuration_error,"## Summary
+Starting at 13:56 UTC on October 14, 2025, customers using notification-service began experiencing checkout and downstream flows.
+
+## Root Cause
+During a configuration update to notification-service, a typo in a numeric threshold was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 8 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying notification-service as the origin.
+
+## Resolution
+The team mitigated impact by reverting the configuration change, which brought error rates back to baseline within 11 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 23 minutes after the incident began.
+
+## Contributing Factors
+- two teams pushed conflicting configuration within the same maintenance window
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Require all configuration changes to go through the deployment pipeline with review."
+INC-00269,notification-service,SEV3,configuration_error,"## Summary
+This postmortem covers a minor service degradation in notification-service that began at 03:59 UTC on June 15, 2026 and affected approximately 31% of requests during the incident window.
+
+## Root Cause
+During a configuration update to notification-service, a value copied from the wrong environment was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 10 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to notification-service.
+
+## Resolution
+Mitigation was applied by reverting the configuration change. Metrics returned to baseline 8 minutes later, and the incident was formally closed 14 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- two teams pushed conflicting configuration within the same maintenance window
+- config validation did not catch the malformed value before rollout
+
+## Preventive Action
+Add a change calendar so overlapping config changes are visible across teams."
+INC-00116,auth-service,SEV1,configuration_error,"## Summary
+This postmortem covers a critical, customer-facing outage in auth-service that began at 03:01 UTC on April 26, 2026 and affected requests originating from the mobile client.
+
+## Root Cause
+During a configuration update to auth-service, a stale credential that had already been rotated was introduced. Because configuration changes bypass the standard deployment pipeline, no automated check flagged the issue before it took effect.
+
+## Detection & Response
+Automated monitoring fired 3 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 6 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+Mitigation was applied by reverting the configuration change. Metrics returned to baseline 16 minutes later, and the incident was formally closed 23 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- two teams pushed conflicting configuration within the same maintenance window
+- the change was applied directly in the environment instead of through the pipeline
+
+## Preventive Action
+Add schema validation for configuration values before rollout."
+INC-00380,payments-service,SEV2,database_issue,"## Summary
+Starting at 04:59 UTC on July 21, 2026, customers using payments-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+A migration executed against the payments-service database held a lock for longer than expected because a partner integration retrying aggressively after its own outage. Writes to the affected table queued up, and the resulting backlog produced a sharp rise in p99 latency for downstream requests.
+
+## Detection & Response
+Automated monitoring fired 1 minutes into the incident on error rate. The on-call engineer acknowledged in 2 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to payments-service.
+
+## Resolution
+The team mitigated impact by killing the offending query and adding an emergency index, which brought error rates back to baseline within 132 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 151 minutes after the incident began.
+
+## Contributing Factors
+- a long-running migration held a lock longer than anticipated
+- a missing index caused a full table scan under production data volumes
+
+## Preventive Action
+Add the missing index and add a query-plan check to the migration review checklist."
+INC-00443,search-service,SEV3,database_issue,"## Summary
+This postmortem covers a minor service degradation in search-service that began at 10:36 UTC on February 16, 2026 and affected approximately 45% of requests during the incident window.
+
+## Root Cause
+A migration executed against the search-service database held a lock for longer than expected because a promotional email sent to the full customer list. Writes to the affected table queued up, and the resulting backlog produced elevated 5xx error rates for downstream requests.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 6 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying search-service as the origin.
+
+## Resolution
+Mitigation was applied by killing the offending query and adding an emergency index. Metrics returned to baseline 33 minutes later, and the incident was formally closed 46 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- a missing index caused a full table scan under production data volumes
+- a long-running migration held a lock longer than anticipated
+
+## Preventive Action
+Add read-after-write consistency checks or route those reads to the primary."
+INC-00384,inventory-service,SEV3,database_issue,"## Summary
+On October 22, 2025, inventory-service experienced a minor service degradation that affected checkout and downstream flows.
+
+## Root Cause
+A migration executed against the inventory-service database held a lock for longer than expected because a spike in concurrent long-running reports. Writes to the affected table queued up, and the resulting backlog produced a queue backlog that grew unbounded for downstream requests.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 8 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to inventory-service.
+
+## Resolution
+The team mitigated impact by killing the offending query and adding an emergency index, which brought error rates back to baseline within 19 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 24 minutes after the incident began.
+
+## Contributing Factors
+- replica lag exceeded the read-after-write consistency assumption in application code
+- a long-running migration held a lock longer than anticipated
+
+## Preventive Action
+Add read-after-write consistency checks or route those reads to the primary."
+INC-00437,search-service,SEV4,database_issue,"## Summary
+This postmortem covers a low-impact anomaly in search-service that began at 21:19 UTC on November 07, 2025 and affected approximately 21% of requests during the incident window.
+
+## Root Cause
+A query pattern against the search-service primary database began performing poorly after a misconfigured load balancer health check, leading to request timeouts for a subset of users. The database's CPU and connection pool were both driven to saturation, and the effects were visible to any request that touched the affected table.
+
+## Detection & Response
+The incident was detected by automated alerting 2 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 6 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying search-service as the origin.
+
+## Resolution
+The team mitigated impact by aborting the migration and restoring normal write traffic, which brought error rates back to baseline within 20 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 34 minutes after the incident began.
+
+## Contributing Factors
+- connection pool exhaustion cascaded from a single slow query
+- a missing index caused a full table scan under production data volumes
+
+## Preventive Action
+Add read-after-write consistency checks or route those reads to the primary."
+INC-00371,payments-service,SEV3,database_issue,"## Summary
+On January 17, 2026, payments-service experienced a minor service degradation that affected checkout and downstream flows.
+
+## Root Cause
+A query pattern against the payments-service primary database began performing poorly after an emergency data backfill run without a maintenance window, leading to a sharp rise in p99 latency. The database's CPU and connection pool were both driven to saturation, and the effects were visible to any request that touched the affected table.
+
+## Detection & Response
+The incident was detected by automated alerting 6 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 3 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying payments-service as the origin.
+
+## Resolution
+The team mitigated impact by killing the offending query and adding an emergency index, which brought error rates back to baseline within 208 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 301 minutes after the incident began.
+
+## Contributing Factors
+- connection pool exhaustion cascaded from a single slow query
+- replica lag exceeded the read-after-write consistency assumption in application code
+
+## Preventive Action
+Add the missing index and add a query-plan check to the migration review checklist."
+INC-00376,payments-service,SEV1,database_issue,"## Summary
+This postmortem covers a critical, customer-facing outage in payments-service that began at 03:49 UTC on December 23, 2025 and affected approximately 26% of requests during the incident window.
+
+## Root Cause
+A migration executed against the payments-service database held a lock for longer than expected because a cloud provider maintenance event. Writes to the affected table queued up, and the resulting backlog produced request timeouts for a subset of users for downstream requests.
+
+## Detection & Response
+The incident was detected by automated alerting 5 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 2 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying payments-service as the origin.
+
+## Resolution
+Mitigation was applied by killing the offending query and adding an emergency index. Metrics returned to baseline 79 minutes later, and the incident was formally closed 151 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- connection pool exhaustion cascaded from a single slow query
+- a long-running migration held a lock longer than anticipated
+
+## Preventive Action
+Add the missing index and add a query-plan check to the migration review checklist."
+INC-00302,api-gateway,SEV3,network_partition,"## Summary
+This postmortem covers a minor service degradation in api-gateway that began at 13:07 UTC on June 08, 2026 and affected read and write requests for a subset of users.
+
+## Root Cause
+Connectivity between api-gateway and its dependencies degraded due to an emergency data backfill run without a maintenance window. Requests that crossed the affected network path began timing out, and because retries were not backed off, the retry traffic itself added load to an already-degraded path.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 8 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+The team mitigated impact by rerouting traffic away from the affected availability zone, which brought error rates back to baseline within 12 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 16 minutes after the incident began.
+
+## Contributing Factors
+- cross-AZ latency spiked during a cloud provider maintenance event
+- DNS resolution for an internal service intermittently failed
+
+## Preventive Action
+Add security group change review with a pre-deploy connectivity check."
+INC-00314,api-gateway,SEV3,network_partition,"## Summary
+Starting at 09:38 UTC on October 19, 2025, customers using api-gateway began experiencing read and write requests for a subset of users.
+
+## Root Cause
+A network-level fault (a decommissioned database replica whose DNS entry was not yet removed) caused intermittent packet loss affecting api-gateway. The intermittent nature of the fault made it difficult to distinguish from an application-level issue during the first several minutes of triage.
+
+## Detection & Response
+The incident was detected by automated alerting 7 minutes after onset, when 5xx rate crossed its configured threshold. On-call acknowledged within 16 minutes and began triage immediately, correlating the alert storm across 1 affected services before identifying api-gateway as the origin.
+
+## Resolution
+The team mitigated impact by rerouting traffic away from the affected availability zone, which brought error rates back to baseline within 19 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 31 minutes after the incident began.
+
+## Contributing Factors
+- DNS resolution for an internal service intermittently failed
+- a misconfigured security group silently dropped a subset of traffic
+
+## Preventive Action
+Add multi-az redundancy for the affected path with automatic failover."
+INC-00323,auth-service,SEV4,network_partition,"## Summary
+On July 21, 2026, auth-service experienced a low-impact anomaly that affected checkout and downstream flows.
+
+## Root Cause
+Connectivity between auth-service and its dependencies degraded due to an emergency data backfill run without a maintenance window. Requests that crossed the affected network path began timing out, and because retries were not backed off, the retry traffic itself added load to an already-degraded path.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 9 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+Mitigation was applied by rerouting traffic away from the affected availability zone. Metrics returned to baseline 11 minutes later, and the incident was formally closed 19 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- cross-AZ latency spiked during a cloud provider maintenance event
+- a misconfigured security group silently dropped a subset of traffic
+
+## Preventive Action
+Add dns resolution monitoring with alerting on failure rate."
+INC-00320,auth-service,SEV4,network_partition,"## Summary
+This postmortem covers a low-impact anomaly in auth-service that began at 02:07 UTC on December 05, 2025 and affected all traffic routed through the affected region.
+
+## Root Cause
+A network-level fault (a decommissioned database replica whose DNS entry was not yet removed) caused intermittent packet loss affecting auth-service. The intermittent nature of the fault made it difficult to distinguish from an application-level issue during the first several minutes of triage.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on error rate. The on-call engineer acknowledged in 15 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to auth-service.
+
+## Resolution
+The team mitigated impact by rerouting traffic away from the affected availability zone, which brought error rates back to baseline within 12 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 19 minutes after the incident began.
+
+## Contributing Factors
+- DNS resolution for an internal service intermittently failed
+- a misconfigured security group silently dropped a subset of traffic
+
+## Preventive Action
+Add security group change review with a pre-deploy connectivity check."
+INC-00463,recommendation-service,SEV4,network_partition,"## Summary
+This postmortem covers a low-impact anomaly in recommendation-service that began at 14:13 UTC on December 20, 2025 and affected approximately 62% of requests during the incident window.
+
+## Root Cause
+A network-level fault (a cloud provider maintenance event) caused intermittent packet loss affecting recommendation-service. The intermittent nature of the fault made it difficult to distinguish from an application-level issue during the first several minutes of triage.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 3 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying recommendation-service as the origin.
+
+## Resolution
+The team mitigated impact by failing over to the secondary network path, which brought error rates back to baseline within 13 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 18 minutes after the incident began.
+
+## Contributing Factors
+- cross-AZ latency spiked during a cloud provider maintenance event
+- a BGP route flap affected connectivity to one availability zone
+
+## Preventive Action
+Add security group change review with a pre-deploy connectivity check."
+INC-00382,payments-service,SEV3,traffic_spike,"## Summary
+Starting at 15:42 UTC on October 29, 2025, customers using payments-service began experiencing checkout and downstream flows.
+
+## Root Cause
+An unanticipated spike in traffic to payments-service, attributable to an emergency data backfill run without a maintenance window, exceeded the provisioned capacity for the affected tier. Cache hit rate fell as the working set outgrew cache capacity, pushing additional load onto the origin service.
+
+## Detection & Response
+Automated monitoring fired 6 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 2 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to payments-service.
+
+## Resolution
+The team mitigated impact by enabling emergency rate limiting, which brought error rates back to baseline within 54 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 91 minutes after the incident began.
+
+## Contributing Factors
+- rate limiting was not tuned for the observed request pattern
+- a marketing campaign was not communicated to the on-call team in advance
+
+## Preventive Action
+Increase cache capacity and add cache hit-rate alerting."
+INC-00438,search-service,SEV3,traffic_spike,"## Summary
+Starting at 19:07 UTC on January 12, 2026, customers using search-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+An unanticipated spike in traffic to search-service, attributable to a spike in concurrent long-running reports, exceeded the provisioned capacity for the affected tier. Cache hit rate fell as the working set outgrew cache capacity, pushing additional load onto the origin service.
+
+## Detection & Response
+Automated monitoring fired 7 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 10 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to search-service.
+
+## Resolution
+The team mitigated impact by scaling out the affected tier and warming the cache, which brought error rates back to baseline within 71 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 121 minutes after the incident began.
+
+## Contributing Factors
+- rate limiting was not tuned for the observed request pattern
+- a retry storm from clients amplified the original spike
+
+## Preventive Action
+Increase cache capacity and add cache hit-rate alerting."
+INC-00372,payments-service,SEV2,traffic_spike,"## Summary
+This postmortem covers a major service degradation in payments-service that began at 09:35 UTC on February 27, 2026 and affected requests originating from the mobile client.
+
+## Root Cause
+An unanticipated spike in traffic to payments-service, attributable to a cloud provider maintenance event, exceeded the provisioned capacity for the affected tier. Cache hit rate fell as the working set outgrew cache capacity, pushing additional load onto the origin service.
+
+## Detection & Response
+Automated monitoring fired 2 minutes into the incident on 5xx rate. The on-call engineer acknowledged in 3 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to payments-service.
+
+## Resolution
+The team mitigated impact by enabling emergency rate limiting, which brought error rates back to baseline within 25 minutes of the mitigation being applied. Full resolution, including validation that downstream services had recovered, was confirmed 41 minutes after the incident began.
+
+## Contributing Factors
+- rate limiting was not tuned for the observed request pattern
+- cache hit rate dropped sharply once the working set exceeded cache capacity
+
+## Preventive Action
+Retune rate limits based on the observed traffic pattern and add burst headroom."
+INC-00388,inventory-service,SEV4,traffic_spike,"## Summary
+On June 12, 2026, inventory-service experienced a low-impact anomaly that affected approximately 64% of requests during the incident window.
+
+## Root Cause
+inventory-service received a surge of traffic roughly 4.7x its typical baseline, driven by a promotional email sent to the full customer list. Existing rate limits and autoscaling were not tuned for a spike of this shape, and request queues began to back up within minutes.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying inventory-service as the origin.
+
+## Resolution
+Mitigation was applied by scaling out the affected tier and warming the cache. Metrics returned to baseline 5 minutes later, and the incident was formally closed 9 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- rate limiting was not tuned for the observed request pattern
+- a retry storm from clients amplified the original spike
+
+## Preventive Action
+Increase cache capacity and add cache hit-rate alerting."
+INC-00403,inventory-service,SEV2,traffic_spike,"## Summary
+Starting at 13:20 UTC on November 01, 2025, customers using inventory-service began experiencing checkout and downstream flows.
+
+## Root Cause
+An unanticipated spike in traffic to inventory-service, attributable to a partner integration retrying aggressively after its own outage, exceeded the provisioned capacity for the affected tier. Cache hit rate fell as the working set outgrew cache capacity, pushing additional load onto the origin service.
+
+## Detection & Response
+The incident was detected by automated alerting 3 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 13 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying inventory-service as the origin.
+
+## Resolution
+Mitigation was applied by scaling out the affected tier and warming the cache. Metrics returned to baseline 37 minutes later, and the incident was formally closed 62 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- a marketing campaign was not communicated to the on-call team in advance
+- rate limiting was not tuned for the observed request pattern
+
+## Preventive Action
+Retune rate limits based on the observed traffic pattern and add burst headroom."
+INC-00399,inventory-service,SEV4,human_error,"## Summary
+This postmortem covers a low-impact anomaly in inventory-service that began at 19:51 UTC on March 18, 2026 and affected all traffic routed through the affected region.
+
+## Root Cause
+During a routine operational task on inventory-service, a typo in a numeric threshold. The action had immediate, visible impact and was only caught once monitoring alerted on the resulting error rate.
+
+## Detection & Response
+The incident was detected by automated alerting 2 minutes after onset, when p99 latency crossed its configured threshold. On-call acknowledged within 13 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying inventory-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the erroneous action. Metrics returned to baseline 14 minutes later, and the incident was formally closed 22 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- an engineer misread a dashboard and restarted the wrong service
+- the change was made outside of the standard deployment window without a second approver
+
+## Preventive Action
+Add an environment confirmation step to the runbook before destructive actions."
+INC-00306,api-gateway,SEV4,human_error,"## Summary
+On September 20, 2025, api-gateway experienced a low-impact anomaly that affected read and write requests for a subset of users.
+
+## Root Cause
+During a routine operational task on api-gateway, a value copied from the wrong environment. The action had immediate, visible impact and was only caught once monitoring alerted on the resulting error rate.
+
+## Detection & Response
+Automated monitoring fired 4 minutes into the incident on CPU utilization. The on-call engineer acknowledged in 4 minutes; initial triage was complicated by a wave of correlated alerts from downstream services before the team traced the issue back to api-gateway.
+
+## Resolution
+Mitigation was applied by restoring from the most recent known-good state. Metrics returned to baseline 3 minutes later, and the incident was formally closed 5 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- a runbook step was executed against the wrong environment
+- a manual database update skipped the usual backup step
+
+## Preventive Action
+Require a second approver for changes made outside the standard deployment window."
+INC-00449,recommendation-service,SEV1,human_error,"## Summary
+Starting at 15:40 UTC on October 21, 2025, customers using recommendation-service began experiencing read and write requests for a subset of users.
+
+## Root Cause
+During a routine operational task on recommendation-service, a typo in a numeric threshold. The action had immediate, visible impact and was only caught once monitoring alerted on the resulting error rate.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when queue depth crossed its configured threshold. On-call acknowledged within 2 minutes and began triage immediately, correlating the alert storm across 3 affected services before identifying recommendation-service as the origin.
+
+## Resolution
+Mitigation was applied by restoring from the most recent known-good state. Metrics returned to baseline 59 minutes later, and the incident was formally closed 79 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the change was made outside of the standard deployment window without a second approver
+- a runbook step was executed against the wrong environment
+
+## Preventive Action
+Add an environment confirmation step to the runbook before destructive actions."
+INC-00441,search-service,SEV3,human_error,"## Summary
+On August 30, 2025, search-service experienced a minor service degradation that affected approximately 62% of requests during the incident window.
+
+## Root Cause
+An engineer performing a misconfigured load balancer health check on search-service an inverted boolean flag. Because the action was performed outside the standard change process, it was not peer reviewed before being carried out.
+
+## Detection & Response
+The incident was detected by automated alerting 1 minutes after onset, when error rate crossed its configured threshold. On-call acknowledged within 6 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying search-service as the origin.
+
+## Resolution
+Mitigation was applied by restoring from the most recent known-good state. Metrics returned to baseline 28 minutes later, and the incident was formally closed 50 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the change was made outside of the standard deployment window without a second approver
+- a manual database update skipped the usual backup step
+
+## Preventive Action
+Add an environment confirmation step to the runbook before destructive actions."
+INC-00351,checkout-service,SEV4,human_error,"## Summary
+Starting at 19:39 UTC on October 02, 2025, customers using checkout-service began experiencing all traffic routed through the affected region.
+
+## Root Cause
+An engineer performing a spike in concurrent long-running reports on checkout-service a typo in a numeric threshold. Because the action was performed outside the standard change process, it was not peer reviewed before being carried out.
+
+## Detection & Response
+The incident was detected by automated alerting 4 minutes after onset, when CPU utilization crossed its configured threshold. On-call acknowledged within 7 minutes and began triage immediately, correlating the alert storm across 2 affected services before identifying checkout-service as the origin.
+
+## Resolution
+Mitigation was applied by reverting the erroneous action. Metrics returned to baseline 14 minutes later, and the incident was formally closed 18 minutes after it started once all downstream alerts had cleared.
+
+## Contributing Factors
+- the change was made outside of the standard deployment window without a second approver
+- a runbook step was executed against the wrong environment
+
+## Preventive Action
+Add a pre-flight backup step that cannot be skipped in the runbook tooling."

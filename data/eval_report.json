@@ -1,0 +1,50 @@
+{
+  "clustering": {
+    "noise_reduction": {
+      "n_alerts": 41572,
+      "n_distinct_clusters": 5550,
+      "n_noise_singletons": 4796,
+      "n_grouped_clusters": 754,
+      "noise_reduction_rate": 0.8664966804580005
+    },
+    "ground_truth_eval": {
+      "adjusted_rand_index": 0.7934491343948441,
+      "purity": 0.927763879534302
+    }
+  },
+  "root_cause": {
+    "n_hand_labeled": 100,
+    "category_distribution": {
+      "deployment_regression": 46,
+      "configuration_error": 18,
+      "resource_exhaustion": 9,
+      "third_party_dependency": 6,
+      "database_issue": 6,
+      "network_partition": 5,
+      "traffic_spike": 5,
+      "human_error": 5
+    },
+    "keyword_baseline_accuracy": 0.52,
+    "ai_accuracy": 0.46,
+    "ai_provider": "mock",
+    "ai_model": "mock-1",
+    "batch_report": {
+      "task": "root_cause",
+      "n_items": 100,
+      "n_cache_hits": 100,
+      "n_cache_misses": 0,
+      "cache_hit_rate": 1.0,
+      "total_tokens_in": 32997,
+      "total_tokens_out": 3000,
+      "total_tokens": 35997,
+      "latency_ms_p50": 0.1,
+      "latency_ms_p95": 0.1,
+      "latency_ms_mean": 0.1,
+      "wall_clock_s": 0.11
+    }
+  },
+  "retrieval": {
+    "precision_at_3": 0.6888888888888889,
+    "n_queries": 60
+  }
+}
