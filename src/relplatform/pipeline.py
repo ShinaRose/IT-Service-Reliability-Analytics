@@ -40,6 +40,15 @@ def compute_full_report(con, use_cached_clusters: bool = True) -> dict:
     months = max(1.0, (deployments["deployed_at"].max() - deployments["deployed_at"].min()).days / 30.0)
     risk_df = compute_risk_scores(incidents, labeled, mttr_fits, months=months)
 
+    # Full per-deploy risk scores (not just the top 10 in the report JSON) persisted so
+    # the dashboard can let a user slide the high-risk flagging percentile and see the
+    # result instantly, without retraining the model.
+    con.execute("CREATE TABLE IF NOT EXISTS deploy_risk_scores (id VARCHAR, service VARCHAR, deployed_at TIMESTAMP, risk_probability DOUBLE)")
+    con.execute("DELETE FROM deploy_risk_scores")
+    scores_out = scored_deploys[["id", "service", "deployed_at", "risk_probability"]]
+    con.register("scores_out_df", scores_out)
+    con.execute("INSERT INTO deploy_risk_scores SELECT * FROM scores_out_df")
+
     cluster_row = con.execute("SELECT count(*) FROM alert_clusters").fetchone()
     if use_cached_clusters and cluster_row and cluster_row[0] > 0:
         clustered = con.execute(
