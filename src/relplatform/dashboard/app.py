@@ -46,31 +46,146 @@ CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; }
-[data-testid="stMetricValue"] { font-family: 'IBM Plex Mono', monospace !important; font-size: 1.6rem; color: #3FD9C7; }
-[data-testid="stMetricLabel"] { color: #A9B4C2; }
-[data-testid="stMetricDelta"] { font-family: 'IBM Plex Mono', monospace !important; }
+:root {
+  --rp-bg: #0A0E16;
+  --rp-surface: #121926;
+  --rp-surface-2: #171F31;
+  --rp-border: #232C40;
+  --rp-accent: #3FD9C7;
+  --rp-accent-dim: #1F5F58;
+  --rp-ok: #4ADE94;    --rp-ok-soft: #10261B;
+  --rp-warn: #F3B94D;  --rp-warn-soft: #2B2210;
+  --rp-bad: #F1706B;   --rp-bad-soft: #2C1414;
+  --rp-text: #EDF1F5;
+  --rp-text-dim: #9AA7B8;
+  --rp-text-faint: #5C6880;
+}
 
+html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; }
 h1, h2, h3 { font-family: 'IBM Plex Sans', sans-serif; letter-spacing: -0.01em; }
 
+/* Page background: a faint accent glow in the corner, not a loud gradient hero */
+[data-testid="stAppViewContainer"], .stApp {
+  background:
+    radial-gradient(1100px 560px at 12% -8%, rgba(63,217,199,0.055), transparent 60%),
+    var(--rp-bg) !important;
+}
+[data-testid="stHeader"] { background: transparent !important; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--rp-bg); }
+::-webkit-scrollbar-thumb { background: var(--rp-border); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rp-accent-dim); }
+
+/* ---------------- Eyebrow label (reused everywhere: hero, panels, sidebar) ---------------- */
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--rp-accent); display: flex; align-items: center; gap: 7px;
+  margin-bottom: 8px;
+}
+.eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rp-accent); flex-shrink: 0; }
+
+/* ---------------- Hero ---------------- */
+.hero { padding: 4px 0 30px; }
+.hero-title {
+  font-family: 'IBM Plex Sans', sans-serif; font-weight: 700; font-size: clamp(26px, 3.2vw, 38px);
+  letter-spacing: -0.02em; line-height: 1.18; color: var(--rp-text); margin: 0 0 12px; max-width: 24ch;
+}
+.hero-meta { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--rp-text-faint); }
+
+/* ---------------- Headline stat grid ---------------- */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--rp-border); border: 1px solid var(--rp-border); border-radius: 14px;
+  overflow: hidden; margin-bottom: 30px;
+}
+.stat-card { background: var(--rp-surface); padding: 20px 22px; transition: background 0.15s ease; }
+.stat-card:hover { background: var(--rp-surface-2); }
+.stat-value {
+  font-family: 'IBM Plex Mono', monospace; font-size: 25px; font-weight: 600;
+  color: var(--rp-accent); letter-spacing: -0.01em; line-height: 1.2;
+}
+.stat-label { font-size: 12.5px; color: var(--rp-text-faint); margin-top: 6px; }
+.stat-sub { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--rp-text-dim); margin-top: 4px; }
+
+/* ---------------- Panels (st.container(border=True)) ----------------
+   Streamlit's own bordered-container testid isn't stable across versions (this one
+   doesn't emit stVerticalBlockBorderWrapper at all). Anchored instead to our own
+   .panel-head marker, which panel_header() renders as the first element inside every
+   real panel: `stLayoutWrapper > stVerticalBlock:has(.panel-head)` matches exactly the
+   6-7 panels that call panel_header() and nothing else (column cells and the page's
+   outermost block share the same testid pair but never contain that marker). */
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head) {
+  background: var(--rp-surface) !important;
+  border: 1px solid var(--rp-border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25), 0 16px 32px -22px rgba(0,0,0,0.6);
+  padding: 20px 22px !important;
+  position: relative;
+}
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head)::before {
+  content: ""; position: absolute; top: -1px; left: 18px; right: 18px; height: 2px;
+  background: linear-gradient(90deg, var(--rp-accent), transparent 85%);
+  border-radius: 2px; opacity: 0.65; pointer-events: none;
+}
+div[data-testid="stLayoutWrapper"]:has(.panel-head) { margin-bottom: 20px; }
+
+.panel-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.panel-title { font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.01em; color: var(--rp-text); margin: 0; }
+.panel-note { font-size: 12.5px; color: var(--rp-text-faint); text-align: right; max-width: 42ch; }
+
+/* ---------------- Metrics ---------------- */
+[data-testid="stMetricValue"] { font-family: 'IBM Plex Mono', monospace !important; font-size: 1.5rem; color: var(--rp-text); }
+[data-testid="stMetricLabel"] { color: var(--rp-text-faint) !important; font-size: 12.5px; }
+[data-testid="stMetricDelta"] { font-family: 'IBM Plex Mono', monospace !important; font-size: 12.5px; }
+
+/* ---------------- Band pills ---------------- */
 .band-pill {
   display: inline-flex; align-items: center; gap: 5px;
   font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
   letter-spacing: 0.03em; text-transform: uppercase;
-  padding: 3px 10px; border-radius: 999px; margin-top: 2px;
+  padding: 3px 10px; border-radius: 999px; margin-top: 4px;
 }
-.band-elite { background: #10261B; color: #4ADE94; }
-.band-high { background: #142A27; color: #3FD9C7; }
-.band-medium { background: #2B2210; color: #F3B94D; }
-.band-low { background: #2C1414; color: #F1706B; }
+.band-elite  { background: var(--rp-ok-soft);   color: var(--rp-ok); }
+.band-high   { background: rgba(63,217,199,0.12); color: var(--rp-accent); }
+.band-medium { background: var(--rp-warn-soft); color: var(--rp-warn); }
+.band-low    { background: var(--rp-bad-soft);  color: var(--rp-bad); }
 
-.sidebar-eyebrow {
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em;
-  text-transform: uppercase; color: #3FD9C7; margin-bottom: 4px;
+/* ---------------- Sidebar ---------------- */
+section[data-testid="stSidebar"] { background: var(--rp-surface); border-right: 1px solid var(--rp-border); }
+section[data-testid="stSidebar"] h1 { font-size: 19px !important; margin-top: 0; }
+section[data-testid="stSidebar"] hr { border-color: var(--rp-border); margin: 16px 0; }
+.control-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--rp-text-dim); margin: 2px 0 0;
 }
 
-div[data-testid="stButton"] > button { border-color: #3FD9C7; color: #3FD9C7; }
-div[data-testid="stButton"] > button:hover { border-color: #3FD9C7; color: #0B0F16; background-color: #3FD9C7; }
+/* ---------------- Buttons ---------------- */
+div[data-testid="stButton"] > button {
+  border: 1px solid var(--rp-accent); color: var(--rp-accent); background: transparent;
+  border-radius: 8px; font-weight: 500; transition: background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+div[data-testid="stButton"] > button:hover {
+  border-color: var(--rp-accent); color: #05110F; background-color: var(--rp-accent);
+  box-shadow: 0 6px 20px -6px rgba(63,217,199,0.45);
+}
+div[data-testid="stButton"] > button:focus:not(:active) { border-color: var(--rp-accent); color: var(--rp-accent); }
+
+/* ---------------- Multiselect chips ---------------- */
+[data-testid="stMultiSelectTagsContainer"] span[data-tag] {
+  background-color: rgba(63,217,199,0.14) !important; border: 1px solid rgba(63,217,199,0.4) !important;
+  border-radius: 6px !important;
+}
+
+/* ---------------- Dataframe / expander shells ---------------- */
+[data-testid="stDataFrame"], [data-testid="stExpander"] {
+  border: 1px solid var(--rp-border) !important; border-radius: 10px !important; overflow: hidden;
+}
+[data-testid="stExpander"] summary { font-family: 'IBM Plex Sans', sans-serif; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -78,6 +193,24 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 def band_pill(band: str) -> str:
     return f'<span class="band-pill band-{band}">{band}</span>'
+
+
+def eyebrow_html(text: str) -> str:
+    return f'<div class="eyebrow"><span class="dot"></span>{text}</div>'
+
+
+def panel_header(eyebrow_text: str, title: str, note: str = "") -> None:
+    note_html = f'<div class="panel-note">{note}</div>' if note else ""
+    st.markdown(
+        f'<div class="panel-head"><div>{eyebrow_html(eyebrow_text)}'
+        f'<h3 class="panel-title">{title}</h3></div>{note_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def stat_card(label: str, value: str, sub: str = "") -> str:
+    sub_html = f'<div class="stat-sub">{sub}</div>' if sub else ""
+    return f'<div class="stat-card"><div class="stat-value">{value}</div><div class="stat-label">{label}</div>{sub_html}</div>'
 
 
 @st.cache_resource
@@ -134,7 +267,7 @@ all_services = sorted(tables["incidents"]["service"].unique())
 
 # ---------------- Sidebar controls ----------------
 with st.sidebar:
-    st.markdown('<div class="sidebar-eyebrow">● Live controls</div>', unsafe_allow_html=True)
+    st.markdown(eyebrow_html("Live controls"), unsafe_allow_html=True)
     st.title("Reliability Analytics")
     st.caption(f"Report computed {report['computed_at'][:19]} UTC")
 
@@ -144,10 +277,11 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    selected_services = st.multiselect("Services", all_services, default=all_services)
+    st.markdown('<div class="control-label">Services</div>', unsafe_allow_html=True)
+    selected_services = st.multiselect("Services", all_services, default=all_services, label_visibility="collapsed")
 
     st.divider()
-    st.subheader("Risk score weights")
+    st.markdown('<div class="control-label">Risk score weights</div>', unsafe_allow_html=True)
     st.caption("Reweight instantly -- no recompute needed, this just re-blends the three normalized signals already on disk.")
     w_freq = st.slider("Incident frequency", 0, 100, 33)
     w_mttr = st.slider("MTTR p90", 0, 100, 33)
@@ -155,11 +289,11 @@ with st.sidebar:
     w_total = max(1, w_freq + w_mttr + w_cfr)
 
     st.divider()
-    st.subheader("Capacity forecast")
+    st.markdown('<div class="control-label">Capacity forecast</div>', unsafe_allow_html=True)
     cap_threshold = st.slider("Breach threshold (%)", 50, 99, 90)
 
     st.divider()
-    st.subheader("Change-failure flagging")
+    st.markdown('<div class="control-label">Change-failure flagging</div>', unsafe_allow_html=True)
     flag_pctile = st.slider("High-risk percentile", 50, 99, 90) / 100.0
 
     st.divider()
@@ -179,8 +313,6 @@ with st.sidebar:
         provider_ready = False
         st.caption(f"AI provider unavailable: {e}")
 
-st.title("Service Reliability Analytics")
-
 dora = report["dora_metrics"]
 nr = report["noise_reduction"]
 ce = report["clustering_ground_truth_eval"]
@@ -196,20 +328,36 @@ risk_df = risk_df.sort_values("risk_score", ascending=False)
 risk_df_view = risk_df[risk_df["service"].isin(selected_services)] if selected_services else risk_df.iloc[0:0]
 top_risk = risk_df_view.iloc[0] if len(risk_df_view) else None
 
-# ---------------- Headline strip ----------------
-hcols = st.columns([1, 1.3, 1, 1])
-hcols[0].metric("Alert noise reduction", f"{nr['noise_reduction_rate']*100:.1f}%")
-hcols[1].metric("Top risk service", top_risk["service"].removesuffix("-service") if top_risk is not None else "n/a",
-                 f"{top_risk['risk_score']:.1f}/100" if top_risk is not None else None)
-hcols[2].metric("Change-failure model AUC", f"{report['change_failure_model']['metrics'].get('cv_roc_auc_mean', float('nan')):.3f}")
-elite_count = sum(1 for m in dora.values() if m["band"] == "elite")
-hcols[3].metric("DORA metrics at Elite", f"{elite_count} / 4")
+# ---------------- Hero ----------------
+st.markdown(
+    f'''<div class="hero">
+      {eyebrow_html("Service Reliability Analytics")}
+      <h1 class="hero-title">Where to spend engineering effort, backed by numbers.</h1>
+      <div class="hero-meta">{len(all_services)} services · report computed {report['computed_at'][:19]} UTC · live and recomputable</div>
+    </div>''',
+    unsafe_allow_html=True,
+)
 
-st.divider()
+# ---------------- Headline strip ----------------
+elite_count = sum(1 for m in dora.values() if m["band"] == "elite")
+cv_auc = report["change_failure_model"]["metrics"].get("cv_roc_auc_mean", float("nan"))
+st.markdown(
+    '<div class="stat-grid">'
+    + stat_card("Alert noise reduction", f"{nr['noise_reduction_rate']*100:.1f}%")
+    + stat_card(
+        "Top risk service",
+        top_risk["service"].removesuffix("-service") if top_risk is not None else "n/a",
+        f"{top_risk['risk_score']:.1f}/100" if top_risk is not None else "",
+    )
+    + stat_card("Change-failure model AUC", f"{cv_auc:.3f}")
+    + stat_card("DORA metrics at Elite", f"{elite_count} / 4")
+    + "</div>",
+    unsafe_allow_html=True,
+)
 
 # ---------------- DORA ----------------
 with st.container(border=True):
-    st.subheader("DORA Metrics")
+    panel_header("Metrics", "DORA Metrics", "Official four-keys definitions · Elite/High/Medium/Low bands from Accelerate")
     cols = st.columns(4)
     labels = {
         "deployment_frequency": ("Deployment Frequency", lambda m: f"{m['value_per_day']}/day"),
@@ -225,7 +373,7 @@ with st.container(border=True):
 
 # ---------------- Alert deduplication ----------------
 with st.container(border=True):
-    st.subheader("Alert Deduplication")
+    panel_header("Clustering", "Alert Deduplication", "Rolling time window + service-dependency blocking, then DBSCAN on message embeddings")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Raw alerts", f"{nr['n_alerts']:,}")
     c2.metric("Distinct clusters", f"{nr['n_distinct_clusters']:,}")
@@ -249,9 +397,8 @@ with st.container(border=True):
 
 # ---------------- Risk ranking ----------------
 with st.container(border=True):
-    st.subheader("Service Risk Ranking (where to spend engineering effort)")
-    st.caption(f"Weights: incident frequency {w_freq/w_total:.0%} · MTTR p90 {w_mttr/w_total:.0%} · "
-               f"change failure rate {w_cfr/w_total:.0%}")
+    panel_header("Priority", "Service Risk Ranking",
+                 f"Weights: frequency {w_freq/w_total:.0%} · MTTR p90 {w_mttr/w_total:.0%} · change failure {w_cfr/w_total:.0%}")
     st.dataframe(
         risk_df_view[["service", "risk_score", "incidents_per_month", "mttr_p90_minutes", "change_failure_rate"]]
         .style.format({"risk_score": "{:.1f}", "incidents_per_month": "{:.2f}", "mttr_p90_minutes": "{:.1f}",
@@ -263,7 +410,7 @@ with st.container(border=True):
 
 # ---------------- MTTR ----------------
 with st.container(border=True):
-    st.subheader("MTTR Distribution (percentiles, per service)")
+    panel_header("Recovery", "MTTR Distribution", "Log-normal / Weibull fit per service, reported as percentiles -- not the mean")
     mttr_rows = []
     for svc, fit in report["mttr_fits"].items():
         if svc not in selected_services:
@@ -274,8 +421,8 @@ with st.container(border=True):
 
 # ---------------- Capacity forecast ----------------
 with st.container(border=True):
-    st.subheader("Capacity Forecast")
-    st.caption(f"Threshold: {cap_threshold}% · gated on p<0.05 and r²≥0.10 (a positive slope alone isn't a trend)")
+    panel_header("Forecast", "Capacity Forecast",
+                 f"Threshold {cap_threshold}% · gated on p&lt;0.05 and r²≥0.10 (a positive slope alone isn't a trend)")
     live_capacity = forecast_all_services(tables["resource_metrics"], threshold=float(cap_threshold))
     cap_df = pd.DataFrame(live_capacity)
     cap_df = cap_df[cap_df["service"].isin(selected_services)] if selected_services else cap_df.iloc[0:0]
@@ -283,7 +430,7 @@ with st.container(border=True):
 
 # ---------------- Change failure model ----------------
 with st.container(border=True):
-    st.subheader("Change-Failure Model")
+    panel_header("Pre-merge risk", "Change-Failure Model", "Logistic regression on deploy features, flagging risky changes before merge")
     cf = report["change_failure_model"]
     st.write(f"5-fold CV ROC AUC: **{cf['metrics'].get('cv_roc_auc_mean', float('nan')):.3f}** "
              f"(± {cf['metrics'].get('cv_roc_auc_std', 0):.3f})")
@@ -304,7 +451,7 @@ with st.container(border=True):
 
 # ---------------- Exec summary ----------------
 with st.container(border=True):
-    st.subheader("Monthly Exec Summary (AI-generated, numbers-checked)")
+    panel_header("AI layer", "Monthly Exec Summary", "Generated, not computed -- every number in it has to trace back to the report")
     if not provider_ready:
         st.warning("AI provider unavailable. Set RELPLATFORM_PROVIDER (mock/ollama/gemini) and, for gemini, GEMINI_API_KEY.")
     else:
