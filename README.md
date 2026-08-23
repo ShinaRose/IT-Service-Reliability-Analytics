@@ -42,6 +42,32 @@ streamlit run src/relplatform/dashboard/app.py
 pytest
 ```
 
+## Deploying the live dashboard (Streamlit Community Cloud)
+
+`docs/index.html` (published via GitHub Pages) is a frozen static snapshot. To make the
+*interactive* dashboard -- recomputable, with a working "Generate exec summary" button --
+reachable from a URL instead of just `localhost`, deploy it to
+[Streamlit Community Cloud](https://share.streamlit.io) (free):
+
+1. Go to share.streamlit.io, sign in with GitHub, click **New app**.
+2. Pick this repo, branch `main`, and set the main file path to
+   `src/relplatform/dashboard/app.py`.
+3. Before deploying, open **Advanced settings -> Secrets** and paste the contents of
+   [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example) (edit the values
+   first -- see the comments in that file). At minimum, set `RELPLATFORM_MONTHS = "3"`
+   so first-run generation and embedding finish quickly on the free tier's 1 CPU / 1GB
+   RAM; the full local setup defaults to 12 months.
+4. Deploy. First load takes a few minutes -- the app has no data yet (the 145MB
+   `reliability.duckdb` is git-ignored, over GitHub's 100MB limit) and bootstraps itself
+   on first run: generates synthetic data, downloads the MiniLM embedding model,
+   clusters alerts, and computes the report (`relplatform/bootstrap.py`). Every restart
+   after that reuses what's already in the container until it's redeployed or recycled.
+5. `RELPLATFORM_PROVIDER` defaults to `mock` if you skip the secrets step -- the app
+   still works, the exec-summary button just returns placeholder text. `ollama` will
+   not work on Streamlit Cloud (there's no Ollama server to reach from there); use
+   `gemini` with a free-tier `GEMINI_API_KEY` for a real AI-generated exec summary in
+   the cloud.
+
 ## AI provider
 
 Selected via `RELPLATFORM_PROVIDER` env var (default `mock`):

@@ -1,17 +1,35 @@
 """Streamlit exec dashboard. Run with: streamlit run src/relplatform/dashboard/app.py
-Reads the precomputed report from DuckDB (run scripts/run_pipeline.py first)."""
+
+On a fresh environment (e.g. a Streamlit Community Cloud deploy, which never receives
+the git-ignored 145MB reliability.duckdb) this bootstraps itself: generates data,
+clusters alerts, and computes the report on first load. Locally, if you've already run
+the scripts/ pipeline, that work is reused as-is.
+"""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import pandas as pd
 import streamlit as st
+
+# Streamlit secrets -> env vars, BEFORE importing relplatform.config (which reads env
+# vars at import time). Wrapped in try/except: st.secrets raises if no secrets.toml
+# exists at all, which is the normal case for local development.
+try:
+    for key in ("RELPLATFORM_PROVIDER", "RELPLATFORM_MONTHS", "GEMINI_API_KEY", "RELPLATFORM_GEMINI_MODEL"):
+        if key in st.secrets:
+            os.environ[key] = str(st.secrets[key])
+except Exception:
+    pass
+
+import pandas as pd
 
 from relplatform.ai.exec_summary import generate_exec_summary
 from relplatform.ai.provider import get_provider
+from relplatform.bootstrap import ensure_ready
 from relplatform.db import get_connection
 from relplatform.pipeline import compute_full_report, load_latest_report, persist_report
 
@@ -20,7 +38,10 @@ st.set_page_config(page_title="Reliability Analytics", layout="wide")
 
 @st.cache_resource
 def _connection():
-    return get_connection()
+    con = get_connection()
+    with st.spinner("First run: generating data and computing the report (a few minutes)..."):
+        ensure_ready(con, progress=lambda msg: st.toast(msg))
+    return con
 
 
 def _load_report(con, force: bool):
@@ -109,11 +130,26 @@ st.dataframe(pd.DataFrame(cf["top_flagged_deploys"]), use_container_width=True)
 
 # ---- Exec summary ----
 st.header("Monthly Exec Summary (AI-generated, numbers-checked)")
-provider = get_provider()
-st.caption(f"Provider: {provider.name} / {provider.model}")
-if st.button("Generate exec summary"):
-    text, context, stats = generate_exec_summary(
-        con, provider, dora, nr, risk_df, cap_rows, "current period",
-    )
-    st.markdown(text)
-    st.caption(f"tokens_in={stats.tokens_in} tokens_out={stats.tokens_out} cache_hit={stats.hit}")
+try:
+    provider = get_provider()
+    provider_ready = True
+except Exception as e:
+    provider = None
+    provider_ready = False
+    st.warning(f"AI provider unavailable ({e}). Set RELPLATFORM_PROVIDER (mock/ollama/gemini) "
+               f"and, for gemini, GEMINI_API_KEY.")
+
+if provider_ready:
+    st.caption(f"Provider: {provider.name} / {provider.model}")
+    if st.button("Generate exec summary"):
+        try:
+            with st.spinner("Generating..."):
+                text, context, stats = generate_exec_summary(
+                    con, provider, dora, nr, risk_df, cap_rows, "current period",
+                )
+            st.markdown(text)
+            st.caption(f"tokens_in={stats.tokens_in} tokens_out={stats.tokens_out} cache_hit={stats.hit}")
+        except Exception as e:
+            st.error(f"Generation failed: {e}. If using Ollama, it isn't reachable from this "
+                     f"environment (Ollama only runs locally) -- switch RELPLATFORM_PROVIDER to "
+                     f"'gemini' or 'mock'.")

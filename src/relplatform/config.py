@@ -17,7 +17,10 @@ LABELS_DIR = ROOT / "labels"
 
 RANDOM_SEED = int(os.environ.get("RELPLATFORM_SEED", "42"))
 
-SIM_START_MONTHS_AGO = 12
+# 12 months locally by default; a cloud deployment on a resource-capped free tier can set
+# RELPLATFORM_MONTHS=3 (via Streamlit secrets or env) to keep first-run generation +
+# embedding fast and light.
+SIM_START_MONTHS_AGO = int(os.environ.get("RELPLATFORM_MONTHS", "12"))
 SERVICES = [
     "api-gateway",
     "auth-service",
@@ -29,7 +32,8 @@ SERVICES = [
     "recommendation-service",
 ]
 
-# AI provider selection: "ollama" (default), "gemini", "mock"
+# AI provider selection: "ollama", "gemini", or "mock" (default -- always safe, no external
+# dependency, so an unconfigured deployment degrades to placeholder text instead of crashing)
 MODEL_PROVIDER = os.environ.get("RELPLATFORM_PROVIDER", "mock").lower()
 OLLAMA_MODEL = os.environ.get("RELPLATFORM_OLLAMA_MODEL", "llama3.2:3b")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
