@@ -82,14 +82,18 @@ Embeddings (`ModelProvider.embed()`) always use local sentence-transformers
 (`all-MiniLM-L6-v2`) regardless of the generation provider -- that's the zero-budget
 piece that doesn't vary. See `relplatform/ai/provider.py`.
 
-**The eval numbers in this repo's `data/eval_report.json` were produced with the `mock`
-provider** (no Ollama/Gemini available in the dev sandbox). Mock's root-cause
-categorization always returns the same JSON-schema-valid dummy category, so its
-"accuracy" there is really just the majority-class rate -- it demonstrates the
-plumbing (schema enforcement, caching, retry, batch reporting) end-to-end, not real
-categorization quality. Point `RELPLATFORM_PROVIDER` at `ollama` or `gemini` and rerun
-`scripts/run_eval.py` for a real accuracy number; the keyword baseline it's compared
-against is real either way.
+**Root-cause categorization in `data/eval_report.json` was rerun with a real provider**
+(`ollama` / `llama3.2:3b`, local CPU inference): **87% accuracy** on the 100
+hand-labeled postmortems, vs. 52% for the keyword baseline -- 100% of responses were
+valid, schema-conforming JSON on the first attempt, at 31.6s / 41.6s per call (p50/p95).
+An earlier run with the `mock` provider (no Ollama/Gemini available yet) scored 46%,
+which was never a real number -- Mock's root-cause categorization always returns the
+same dummy category, so that 46% was just the majority-class rate, demonstrating the
+plumbing (schema enforcement, caching, retry, batch reporting) rather than actual
+categorization quality. `mock` still is what a fresh clone gets by default (zero
+external dependencies), and every other eval number here (clustering, retrieval) is
+provider-independent -- only root-cause categorization needed a real model to mean
+anything.
 
 ## Architecture
 
