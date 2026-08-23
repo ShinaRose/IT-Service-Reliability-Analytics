@@ -28,9 +28,8 @@ def compute_full_report(con, use_cached_clusters: bool = True) -> dict:
     tables = load_tables(con)
     deployments, incidents, resource_metrics = tables["deployments"], tables["incidents"], tables["resource_metrics"]
 
-    dora = compute_all_dora_metrics(deployments, incidents)
-
     labeled = label_deploy_caused_incidents(deployments, incidents)
+    dora = compute_all_dora_metrics(deployments, incidents, labeled=labeled)
     cf_result = train_change_failure_model(labeled)
     scored_deploys = score_deploys(cf_result["pipeline"], deployments)
 
@@ -50,7 +49,14 @@ def compute_full_report(con, use_cached_clusters: bool = True) -> dict:
     con.execute("INSERT INTO deploy_risk_scores SELECT * FROM scores_out_df")
 
     cluster_row = con.execute("SELECT count(*) FROM alert_clusters").fetchone()
-    if use_cached_clusters and cluster_row and cluster_row[0] > 0:
+    n_cached_clusters = cluster_row[0] if cluster_row else 0
+    # Cache is only trusted when its row count matches `alerts` exactly, not just
+    # "non-empty": alert_clusters is a full snapshot from one clustering run (see
+    # run_clustering.py / bootstrap.py, both `DELETE FROM alert_clusters` before
+    # inserting), so a count mismatch means alerts have been added/regenerated since,
+    # and the JOIN below is an INNER JOIN -- it would silently drop every alert missing
+    # from the stale cache rather than erroring, understating n_alerts with no warning.
+    if use_cached_clusters and n_cached_clusters == len(tables["alerts"]) and n_cached_clusters > 0:
         clustered = con.execute(
             "SELECT a.id, a.service, a.message, a.fired_at, a.incident_id, c.cluster_id "
             "FROM alerts a JOIN alert_clusters c ON a.id = c.alert_id"

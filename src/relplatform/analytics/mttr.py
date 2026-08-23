@@ -60,6 +60,13 @@ def fit_mttr_per_service(incidents: pd.DataFrame, min_n: int = 8) -> dict:
                 candidates.append((aic, params))
             except Exception:
                 continue
+        if not candidates:
+            # Both MLE fits failed to converge (e.g. a pathological mix of a huge outlier
+            # alongside many near-identical values) -- candidates[0] would otherwise raise
+            # IndexError and abort the whole report, not just this one service.
+            results[service] = {"n": len(x), "fit": None, "empirical_percentiles": empirical,
+                                 "note": "distribution fit did not converge, reporting empirical percentiles only"}
+            continue
         candidates.sort(key=lambda c: c[0])
         best_aic, best_params = candidates[0]
         ks_stat, ks_p = stats.kstest(x, best_params["dist"],

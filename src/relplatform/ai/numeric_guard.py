@@ -9,7 +9,10 @@ from __future__ import annotations
 import re
 
 _ISO_DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
-_NUM_RE = re.compile(r"-?\d[\d,]*(?:\.\d+)?%?")
+# (?<!\d) before the optional sign: without it, a range like "3-5%" was parsed as the
+# minus sign belonging to "5" (tokens 3.0, -5.0 instead of 3.0, 5.0) because "-?" happily
+# consumed a hyphen that was actually a range separator, not a leading minus.
+_NUM_RE = re.compile(r"(?<!\d)-?\d[\d,]*(?:\.\d+)?%?")
 
 
 def extract_numbers(text: str) -> list[float]:
@@ -30,9 +33,18 @@ def extract_numbers(text: str) -> list[float]:
 def _close_enough(n: float, allowed: float) -> bool:
     if round(n, 1) == round(allowed, 1):
         return True
-    # Small relative slack so the model can reformat "7.29%" as "7%" without being flagged,
-    # but deliberately no generous absolute floor -- that's what let two genuinely different
-    # small numbers (e.g. 1.8 and 2.1) both round to the same nearby integer and collide.
+    # Whole-number reformatting ("7%" for an input of "7.29%") wasn't actually covered by
+    # either rule above or below: round(7.0,1) != round(7.29,1), and 0.29 exceeds the 3%
+    # relative tolerance below. Only fires when `n` itself looks like a rounded whole
+    # number (no fractional part) -- unlike a bare `round(n) == round(allowed)` check
+    # (which was tried and reverted), this doesn't reintroduce the 1.8-vs-2.1 collision:
+    # 2.1 has a fractional part, so this branch never applies to it.
+    if n == int(n) and round(allowed) == n:
+        return True
+    # Small relative slack so the model can reformat "86.4%" as "86%" without being
+    # flagged, but deliberately no generous absolute floor -- that's what let two
+    # genuinely different small numbers (e.g. 1.8 and 2.1) both round to the same nearby
+    # integer and collide.
     tol = max(0.05, 0.03 * abs(allowed))
     return abs(n - allowed) <= tol
 

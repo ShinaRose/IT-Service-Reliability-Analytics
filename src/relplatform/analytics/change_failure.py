@@ -50,7 +50,12 @@ def build_pipeline() -> Pipeline:
 
 def time_split(deployments: pd.DataFrame, test_frac: float = 0.25) -> tuple[pd.DataFrame, pd.DataFrame]:
     df = deployments.sort_values("deployed_at")
-    cutoff_idx = int(len(df) * (1 - test_frac))
+    if len(df) == 0:
+        return df, df
+    # Clamped: test_frac=0 (or a small enough df) made cutoff_idx == len(df), one past the
+    # last row, and df.iloc[cutoff_idx] raised IndexError instead of returning "everything
+    # in train, nothing in test".
+    cutoff_idx = min(int(len(df) * (1 - test_frac)), len(df) - 1)
     cutoff = df.iloc[cutoff_idx]["deployed_at"]
     return df[df["deployed_at"] < cutoff], df[df["deployed_at"] >= cutoff]
 

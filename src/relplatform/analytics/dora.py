@@ -127,12 +127,15 @@ def lead_time_for_changes(deployments: pd.DataFrame) -> dict:
 def change_failure_rate(deployments_labeled: pd.DataFrame) -> dict:
     df = deployments_labeled.copy()
     rate = float(df["caused_incident"].mean())
+    # Matches config.DORA_BANDS exactly: elite 0-15%, high AND medium both 16-30% (the
+    # official chart really does publish the same numeric band twice under two labels --
+    # see the module docstring), low is anything above 30%. This used to have a fabricated
+    # "medium: 30-45%" band that appears nowhere in the source material, silently
+    # mislabeling a >30% rate as medium instead of low.
     if rate <= 0.15:
         band = "elite"
     elif rate <= 0.30:
-        band = "high"  # NOTE: DORA's published chart shows High and Medium as the same 16-30% band
-    elif rate <= 0.45:
-        band = "medium"
+        band = "high"  # DORA's published chart shows High and Medium as the same 16-30% band
     else:
         band = "low"
 
@@ -155,6 +158,12 @@ def change_failure_rate(deployments_labeled: pd.DataFrame) -> dict:
 def time_to_restore(incidents: pd.DataFrame) -> dict:
     df = incidents.copy()
     df["restore_hours"] = (pd.to_datetime(df["resolved_at"]) - pd.to_datetime(df["started_at"])).dt.total_seconds() / 3600
+    # relplatform.analytics.mttr filters restore_minutes > 0 before fitting/reporting
+    # percentiles for the same underlying data; this metric was computing the median over
+    # unfiltered restore_hours, so a bad row (resolved_at <= started_at -- clock skew, or
+    # an incident marked resolved at creation) silently pulled the DORA median down without
+    # mttr_fits agreeing, and could flip the reported band.
+    df = df[df["restore_hours"] > 0]
     median_hours = float(df["restore_hours"].median())
 
     if median_hours < 1:
@@ -181,8 +190,16 @@ def time_to_restore(incidents: pd.DataFrame) -> dict:
     }
 
 
-def compute_all_dora_metrics(deployments: pd.DataFrame, incidents: pd.DataFrame, window_hours: float = 4.0) -> dict:
-    labeled = label_deploy_caused_incidents(deployments, incidents, window_hours)
+def compute_all_dora_metrics(
+    deployments: pd.DataFrame, incidents: pd.DataFrame, window_hours: float = 4.0,
+    labeled: pd.DataFrame | None = None,
+) -> dict:
+    """`labeled` lets a caller that already ran label_deploy_caused_incidents (e.g.
+    pipeline.compute_full_report, which needs it again for the change-failure model and
+    risk scoring) pass it in instead of paying for the O(n_incidents x n_deploys)
+    time-proximity heuristic a second time on the same inputs."""
+    if labeled is None:
+        labeled = label_deploy_caused_incidents(deployments, incidents, window_hours)
     return {
         "deployment_frequency": deployment_frequency(deployments),
         "lead_time_for_changes": lead_time_for_changes(deployments),

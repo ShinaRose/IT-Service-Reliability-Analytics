@@ -66,7 +66,33 @@ def test_exec_summary_generation_cites_only_input_numbers(memdb):
         "Top risk: payments-service (risk score 87.5, 3.1 incidents/month, MTTR p90 145.2 min, change failure 11.0%), "
         "projected to breach its 90.0% capacity threshold on 2026-11-02."
     )
-    text, context, stats = generate_exec_summary(memdb, provider, dora_metrics, noise_reduction, risk_df, capacity_forecasts, "August 2026")
+    text, context, stats, unsupported_numbers = generate_exec_summary(
+        memdb, provider, dora_metrics, noise_reduction, risk_df, capacity_forecasts, "August 2026",
+    )
 
+    assert unsupported_numbers == []
     unsupported = find_unsupported_numbers(text, context)
     assert unsupported == [], f"exec summary cited numbers not present in its input: {unsupported}"
+
+
+def test_exec_summary_retries_and_recovers_from_hallucination(memdb):
+    """generate_exec_summary() used to build `context` and hand the raw LLM output
+    straight back with no check of its own -- numeric_guard only ran in tests, not in the
+    function the README and docstring claim enforces the guarantee. This checks the
+    actual production function catches and repairs a hallucination itself."""
+    dora_metrics, noise_reduction, risk_df, capacity_forecasts = _fake_metrics()
+    provider = MockProvider()
+    # Insertion order matters: MockProvider returns the first fixture whose key is a
+    # substring of the prompt. The retry prompt contains BOTH "Input figures" (it's built
+    # by appending to the original prompt) and the correction marker, so the more specific
+    # marker must be checked first to win on retry.
+    provider.fixtures["Your previous answer stated"] = "Change failure rate held at 7.29%, in the elite band."
+    provider.fixtures["Input figures"] = "Change failure rate improved dramatically to 2.1%, an outstanding result."
+
+    text, context, stats, unsupported_numbers = generate_exec_summary(
+        memdb, provider, dora_metrics, noise_reduction, risk_df, capacity_forecasts, "August 2026",
+    )
+
+    assert unsupported_numbers == [], "retry should have recovered a clean summary"
+    assert "7.29" in text
+    assert len(provider.calls) >= 2, "should have retried after the first hallucinated attempt"

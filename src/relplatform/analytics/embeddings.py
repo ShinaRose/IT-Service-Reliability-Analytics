@@ -43,6 +43,8 @@ def _fallback_embed(texts: list[str]) -> np.ndarray:
 def embed_texts(con, texts: list[str], batch_size: int = 128) -> np.ndarray:
     """Returns (n, dim) float32 array, using the DuckDB `embedding_cache` table keyed by
     sha256(model || text)."""
+    if not texts:
+        return np.zeros((0, _EMBED_DIM), dtype=np.float32)
     con.execute(
         """
         CREATE TABLE IF NOT EXISTS embedding_cache (

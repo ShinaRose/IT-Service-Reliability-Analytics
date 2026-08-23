@@ -42,10 +42,8 @@ def keyword_baseline_predict(text: str) -> str:
 def build_hand_label_sample(incidents: pd.DataFrame, n: int = 100, seed: int = 13) -> pd.DataFrame:
     """Stratified sample across root_cause_category, ~proportional with a floor per
     class so rare categories aren't dropped entirely."""
-    rng = pd.Series(range(len(incidents)))
     groups = []
     per_class_floor = max(1, n // (len(CATEGORIES) * 3))
-    remaining = n
     df = incidents.sample(frac=1.0, random_state=seed)  # shuffle
     counts_target = {}
     for cat in CATEGORIES:

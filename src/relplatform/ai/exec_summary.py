@@ -4,7 +4,8 @@ itself). See relplatform.ai.numeric_guard for the enforcement mechanism.
 """
 from __future__ import annotations
 
-from relplatform.ai.cache import cached_generate_call
+from relplatform.ai.cache import CachedCallStats, cached_generate_call
+from relplatform.ai.numeric_guard import find_unsupported_numbers
 
 EXEC_SUMMARY_SYSTEM = (
     "You are writing a monthly reliability summary for engineering leadership. Use ONLY the "
@@ -64,8 +65,38 @@ def build_context(dora_metrics: dict, noise_reduction: dict, risk_df, capacity_f
     return "\n".join(lines)
 
 
-def generate_exec_summary(con, provider, dora_metrics: dict, noise_reduction: dict, risk_df, capacity_forecasts: list[dict], period_label: str):
+def generate_exec_summary(
+    con, provider, dora_metrics: dict, noise_reduction: dict, risk_df, capacity_forecasts: list[dict],
+    period_label: str, max_retries: int = 2,
+):
+    """Returns (text, context, stats, unsupported_numbers). The module docstring and the
+    README both promise every number in the summary traces back to `context` -- that
+    guarantee used to be enforced only by tests/test_hallucination.py, never by this
+    function itself, so a real provider could hallucinate a figure straight into the text
+    a user sees. Now it actually checks its own output with numeric_guard and retries
+    (feeding the offending numbers back to the model) before giving up. `unsupported_numbers`
+    is non-empty only if retries were exhausted and a caller should warn the user."""
     context = build_context(dora_metrics, noise_reduction, risk_df, capacity_forecasts, period_label)
     prompt = f"Input figures:\n\n{context}\n\nWrite the summary now."
+
     text, stats = cached_generate_call(con, provider, task="exec_summary", prompt=prompt, system=EXEC_SUMMARY_SYSTEM, max_tokens=700)
-    return text, context, stats
+    unsupported = find_unsupported_numbers(text, context)
+    tokens_in, tokens_out, latency_ms = stats.tokens_in, stats.tokens_out, stats.latency_ms
+
+    attempt = 0
+    while unsupported and attempt < max_retries:
+        attempt += 1
+        retry_prompt = (
+            f"{prompt}\n\nYour previous answer stated these numbers, which do not appear anywhere in the "
+            f"input figures above: {', '.join(str(n) for n in unsupported)}. Rewrite the summary using ONLY "
+            f"numbers that appear in the input figures -- do not calculate, estimate, or restate a number "
+            f"that isn't explicitly given."
+        )
+        text, stats = cached_generate_call(con, provider, task="exec_summary", prompt=retry_prompt, system=EXEC_SUMMARY_SYSTEM, max_tokens=700)
+        tokens_in += stats.tokens_in
+        tokens_out += stats.tokens_out
+        latency_ms += stats.latency_ms
+        unsupported = find_unsupported_numbers(text, context)
+
+    combined_stats = CachedCallStats(hit=stats.hit, tokens_in=tokens_in, tokens_out=tokens_out, latency_ms=latency_ms)
+    return text, context, combined_stats, unsupported

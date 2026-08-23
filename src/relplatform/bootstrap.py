@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+import duckdb
+
 from relplatform.analytics.clustering import ClusteringConfig, cluster_alerts
 from relplatform.config import RANDOM_SEED, SIM_START_MONTHS_AGO
 from relplatform.db import init_schema, reset_schema
@@ -16,13 +18,29 @@ from relplatform.generator.load import load
 from relplatform.generator.simulate import simulate
 from relplatform.pipeline import compute_full_report, persist_report
 
+# Caught specifically, not `except Exception`: a bare except here would silently treat a
+# locked file, disk I/O error, or corrupted table as "no data yet" -- and ensure_ready()
+# reacts to "no data yet" by calling reset_schema(), which drops and regenerates
+# everything. A real error deserves to propagate loudly, not to look like an excuse to
+# discard a working 145MB database.
+_MISSING_TABLE_ERRORS = (duckdb.CatalogException,)
+
 
 def has_data(con) -> bool:
     init_schema(con)
+    # generator.load.load() runs six separate INSERTs with no wrapping transaction. If the
+    # process is killed between them (a real risk on a resource-capped cold start -- the
+    # exact scenario this module exists for), checking only `incidents` would call a
+    # generation that got as far as incidents but never reached alerts/resource_metrics
+    # "done", and every later restart would skip regeneration forever. Checking all three
+    # doesn't make load() atomic, but it closes most of the window.
     try:
-        n = con.execute("SELECT count(*) FROM incidents").fetchone()[0]
-        return n > 0
-    except Exception:
+        counts = con.execute(
+            "SELECT (SELECT count(*) FROM incidents), (SELECT count(*) FROM alerts), "
+            "(SELECT count(*) FROM resource_metrics)"
+        ).fetchone()
+        return all(c > 0 for c in counts)
+    except _MISSING_TABLE_ERRORS:
         return False
 
 
@@ -30,7 +48,7 @@ def has_report(con) -> bool:
     try:
         n = con.execute("SELECT count(*) FROM reports").fetchone()[0]
         return n > 0
-    except Exception:
+    except _MISSING_TABLE_ERRORS:
         return False
 
 

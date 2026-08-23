@@ -26,6 +26,16 @@ def forecast_service(
     current_value = float(y[-1])
     latest_date = pd.to_datetime(df["ts"]).max()
 
+    # linregress returns all-NaN when x has zero variance (every row landed on the same
+    # timestamp). NaN comparisons are always False, so `slope <= 1e-6` and the p/r_squared
+    # gate below would both silently pass a NaN slope through to timedelta(days=nan),
+    # which raises. Catch it explicitly instead of relying on comparisons that can't see it.
+    if not np.isfinite(slope):
+        return {
+            "service": service, "metric": metric_name, "status": "insufficient_data",
+            "current_value": round(current_value, 1), "threshold": threshold,
+        }
+
     if slope <= 1e-6:
         return {
             "service": service, "metric": metric_name, "status": "stable_or_declining",

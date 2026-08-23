@@ -471,10 +471,18 @@ with st.container(border=True):
     deploy_scores = tables["deploy_risk_scores"].copy()
     scoped = deploy_scores[deploy_scores["service"].isin(selected_services)] if selected_services else deploy_scores.iloc[0:0]
     if len(scoped):
+        # Cutoff is deliberately computed across the whole fleet (deploy_scores), not just
+        # the filtered `scoped` set -- "top 10% riskiest" should mean fleet-wide, so that
+        # narrowing the Services filter shows how many of *that* service's deploys clear a
+        # fixed bar, not a moving one that always flags ~10% of whatever's currently shown.
+        # The caption used to read "top X%... N of M in the selected services" without
+        # saying the bar itself was fleet-wide, so a filtered view could show e.g. 8 of 12
+        # flagged and look broken next to "top 10%" -- now it says so explicitly.
         cutoff = deploy_scores["risk_probability"].quantile(flag_pctile)
         flagged = scoped[scoped["risk_probability"] >= cutoff].sort_values("risk_probability", ascending=False)
-        st.caption(f"Flagging the top {100 * (1 - flag_pctile):.0f}% by predicted risk "
-                   f"(probability ≥ {cutoff:.3f}) -- {len(flagged)} of {len(scoped)} deploys in the selected services")
+        st.caption(f"Flagging deploys at or above the fleet-wide top {100 * (1 - flag_pctile):.0f}% risk bar "
+                   f"(probability ≥ {cutoff:.3f}) -- {len(flagged)} of {len(scoped)} deploys in the selected "
+                   f"services clear that bar")
         st.dataframe(flagged.head(25)[["id", "service", "deployed_at", "risk_probability"]],
                      width="stretch", hide_index=True)
     else:
@@ -489,9 +497,16 @@ with st.container(border=True):
         if st.button("Generate exec summary"):
             try:
                 with st.spinner("Generating..."):
-                    text, context, stats = generate_exec_summary(
-                        con, provider, dora, nr, risk_df, report["capacity_forecasts"], "current period",
+                    # risk_df_view (filtered by the Services multiselect), not risk_df --
+                    # every other live panel on this page respects the filter, and the
+                    # summary silently ranking services the user excluded from view would
+                    # look inconsistent with everything else on screen.
+                    text, context, stats, unsupported_numbers = generate_exec_summary(
+                        con, provider, dora, nr, risk_df_view, report["capacity_forecasts"], "current period",
                     )
+                if unsupported_numbers:
+                    st.warning(f"Could not fully verify this summary against the report after retrying -- "
+                               f"it may state numbers not present in the input: {unsupported_numbers}")
                 st.markdown(text)
                 st.caption(f"tokens_in={stats.tokens_in} tokens_out={stats.tokens_out} cache_hit={stats.hit}")
             except Exception as e:

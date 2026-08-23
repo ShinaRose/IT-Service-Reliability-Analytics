@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+import duckdb
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 
@@ -16,7 +17,7 @@ from relplatform.ai.exec_summary import generate_exec_summary
 from relplatform.ai.provider import get_provider
 from relplatform.ai.rag import build_incident_index, retrieve_for_alert_cluster
 from relplatform.db import get_connection
-from relplatform.pipeline import compute_full_report, load_latest_report
+from relplatform.pipeline import compute_full_report, load_latest_report, persist_report
 
 _state: dict = {}
 
@@ -24,7 +25,16 @@ _state: dict = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _state["con"] = get_connection()
-    _state["provider"] = get_provider()
+    # Unlike the dashboard's identical call (which degrades to a warning), this used to be
+    # unguarded -- get_provider() raises (missing GEMINI_API_KEY, an unrecognized
+    # RELPLATFORM_PROVIDER, a missing ollama/google-generativeai import) would abort the
+    # whole lifespan, taking down every endpoint (including /health, /dora, /report) over
+    # a misconfiguration that only actually matters for /exec-summary.
+    try:
+        _state["provider"] = get_provider()
+    except Exception as e:
+        _state["provider"] = None
+        _state["provider_error"] = str(e)
     yield
     _state["con"].close()
 
@@ -49,12 +59,17 @@ def full_report():
     return _report()
 
 
-@app.get("/report/recompute")
+@app.post("/report/recompute")
 def recompute_report():
-    report = compute_full_report(_state["con"])
-    from relplatform.pipeline import persist_report
-
-    persist_report(_state["con"], report)
+    # POST, not GET: this recomputes the full report (real cost: clustering, model
+    # training, MTTR fitting) and mutates persisted state. A GET here was trivially
+    # triggerable by a link prefetch, a crawler, or browser history navigation -- GET is
+    # supposed to be safe/idempotent-to-repeat-accidentally, this isn't.
+    try:
+        report = compute_full_report(_state["con"])
+        persist_report(_state["con"], report)
+    except duckdb.CatalogException as e:
+        raise HTTPException(status_code=503, detail=f"Source tables not ready: {e}")
     return {"computed_at": report["computed_at"]}
 
 
@@ -96,7 +111,10 @@ def clustering_eval():
 @app.get("/incidents/{incident_id}/similar")
 def similar_incidents(incident_id: str, k: int = 3):
     con = _state["con"]
-    incidents = con.execute("SELECT * FROM incidents").df()
+    try:
+        incidents = con.execute("SELECT * FROM incidents").df()
+    except duckdb.CatalogException:
+        raise HTTPException(status_code=503, detail="No incidents table yet -- run scripts/run_pipeline.py first")
     if incident_id not in incidents["id"].values:
         raise HTTPException(status_code=404, detail=f"unknown incident {incident_id}")
 
@@ -112,13 +130,16 @@ def similar_incidents(incident_id: str, k: int = 3):
 
 @app.get("/exec-summary")
 def exec_summary(period_label: str = "latest"):
+    provider = _state.get("provider")
+    if provider is None:
+        raise HTTPException(status_code=503, detail=f"AI provider unavailable: {_state.get('provider_error')}")
     report = _report()
     con = _state["con"]
-    provider = _state["provider"]
     risk_df = pd.DataFrame(report["risk_scores"])
-    text, context, stats = generate_exec_summary(
+    text, context, stats, unsupported_numbers = generate_exec_summary(
         con, provider, report["dora_metrics"], report["noise_reduction"], risk_df,
         report["capacity_forecasts"], period_label,
     )
     return {"summary": text, "provider": provider.name, "model": provider.model,
-            "tokens_in": stats.tokens_in, "tokens_out": stats.tokens_out, "cache_hit": stats.hit}
+            "tokens_in": stats.tokens_in, "tokens_out": stats.tokens_out, "cache_hit": stats.hit,
+            "unsupported_numbers": unsupported_numbers}
