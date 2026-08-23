@@ -1,5 +1,9 @@
 # Reliability Analytics Platform
 
+[![tests](https://github.com/ShinaRose/IT-Service-Reliability-Analytics/actions/workflows/tests.yml/badge.svg)](https://github.com/ShinaRose/IT-Service-Reliability-Analytics/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Report](https://img.shields.io/badge/report-live-2DD4BF)](https://shinarose.github.io/IT-Service-Reliability-Analytics/)
+
 Turns synthetic alerts/incidents/deployments into DORA metrics, measured alert-noise
 reduction, and a ranked list of where to spend engineering effort -- with an AI layer
 that summarizes, categorizes and retrieves, but never computes a metric itself.
