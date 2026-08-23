@@ -82,10 +82,25 @@ def band_pill(band: str) -> str:
 
 @st.cache_resource
 def _connection():
-    con = get_connection()
-    with st.spinner("First run: generating data and computing the report (a few minutes)..."):
-        ensure_ready(con, progress=lambda msg: st.toast(msg))
-    return con
+    return get_connection()
+
+
+@st.cache_resource
+def _bootstrap(_con) -> bool:
+    # cache_resource, not a plain call: this must run exactly once per process, not once
+    # per script rerun. ensure_ready() is idempotent on its own (a fast no-op once data
+    # exists), but idempotent isn't the same as race-free -- a page reload during a slow
+    # cold start would otherwise trigger a second, overlapping bootstrap before the first
+    # has committed any data. Wrapping it in cache_resource makes concurrent reruns share
+    # the one in-flight (or completed) call instead of racing.
+    #
+    # No st.* calls inside this function's body, unlike the naive version of this fix:
+    # cache_resource replays a cached function's UI calls on every cache hit, and Streamlit
+    # can't safely replay one invoked through a closure passed in as an argument (like
+    # `progress=lambda msg: st.toast(msg)` would be) -- that raises CacheReplayClosureError,
+    # which only ever surfaced on a genuinely cold deploy (Streamlit Cloud), never locally.
+    ensure_ready(_con, progress=print)
+    return True
 
 
 @st.cache_data
@@ -111,6 +126,8 @@ def _load_report(con, force: bool):
 
 
 con = _connection()
+with st.spinner("First run: generating data and computing the report (a few minutes)..."):
+    _bootstrap(con)
 report = _load_report(con, force=False)
 tables = _load_tables(con)
 all_services = sorted(tables["incidents"]["service"].unique())
