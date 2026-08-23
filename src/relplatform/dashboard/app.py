@@ -59,6 +59,17 @@ CUSTOM_CSS = """
   --rp-text: #EDF1F5;
   --rp-text-dim: #9AA7B8;
   --rp-text-faint: #5C6880;
+
+  /* Per-panel signature hues -- each major section gets its own color so the page reads
+     as distinct zones at a glance, not one accent repeated seven times. Not arbitrary:
+     blue for the clustering/data-processing panel, amber for priority (reusing the same
+     amber as the "medium" DORA band -- it already means "pay attention" on this page),
+     violet for recovery, coral for a forward-looking forecast, rose for the risk/failure
+     domain (reusing the "bad" semantic color, since that IS this panel's subject). DORA
+     and the AI exec summary bookend the page in the primary teal on purpose. */
+  --rp-blue: #5EC8F2;   --rp-blue-soft: #0E2530;
+  --rp-violet: #B18CF5; --rp-violet-soft: #211A33;
+  --rp-coral: #FF9166;  --rp-coral-soft: #2C1B10;
 }
 
 html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; }
@@ -130,6 +141,21 @@ div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.pan
 }
 div[data-testid="stLayoutWrapper"]:has(.panel-head) { margin-bottom: 20px; }
 
+/* Per-panel accent overrides -- same :has() anchoring, scoped by an accent-* class on
+   the panel's own .panel-head so each panel's top bar + eyebrow pick up its signature
+   hue instead of the default teal. */
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head.accent-blue)::before   { background: linear-gradient(90deg, var(--rp-blue), transparent 85%); }
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head.accent-amber)::before  { background: linear-gradient(90deg, var(--rp-warn), transparent 85%); }
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head.accent-violet)::before { background: linear-gradient(90deg, var(--rp-violet), transparent 85%); }
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head.accent-coral)::before  { background: linear-gradient(90deg, var(--rp-coral), transparent 85%); }
+div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head.accent-rose)::before   { background: linear-gradient(90deg, var(--rp-bad), transparent 85%); }
+
+.panel-head.accent-blue .eyebrow   { color: var(--rp-blue); }   .panel-head.accent-blue .eyebrow .dot   { background: var(--rp-blue); }
+.panel-head.accent-amber .eyebrow  { color: var(--rp-warn); }   .panel-head.accent-amber .eyebrow .dot  { background: var(--rp-warn); }
+.panel-head.accent-violet .eyebrow { color: var(--rp-violet); } .panel-head.accent-violet .eyebrow .dot { background: var(--rp-violet); }
+.panel-head.accent-coral .eyebrow  { color: var(--rp-coral); }  .panel-head.accent-coral .eyebrow .dot  { background: var(--rp-coral); }
+.panel-head.accent-rose .eyebrow   { color: var(--rp-bad); }    .panel-head.accent-rose .eyebrow .dot   { background: var(--rp-bad); }
+
 .panel-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
 .panel-title { font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: -0.01em; color: var(--rp-text); margin: 0; }
 .panel-note { font-size: 12.5px; color: var(--rp-text-faint); text-align: right; max-width: 42ch; }
@@ -199,10 +225,13 @@ def eyebrow_html(text: str) -> str:
     return f'<div class="eyebrow"><span class="dot"></span>{text}</div>'
 
 
-def panel_header(eyebrow_text: str, title: str, note: str = "") -> None:
+def panel_header(eyebrow_text: str, title: str, note: str = "", accent: str = "") -> None:
+    """accent: '' (teal, the default/brand color) or one of blue/amber/violet/coral/rose --
+    see the accent-* CSS rules for what each panel's signature hue is used for."""
     note_html = f'<div class="panel-note">{note}</div>' if note else ""
+    accent_cls = f" accent-{accent}" if accent else ""
     st.markdown(
-        f'<div class="panel-head"><div>{eyebrow_html(eyebrow_text)}'
+        f'<div class="panel-head{accent_cls}"><div>{eyebrow_html(eyebrow_text)}'
         f'<h3 class="panel-title">{title}</h3></div>{note_html}</div>',
         unsafe_allow_html=True,
     )
@@ -373,7 +402,7 @@ with st.container(border=True):
 
 # ---------------- Alert deduplication ----------------
 with st.container(border=True):
-    panel_header("Clustering", "Alert Deduplication", "Rolling time window + service-dependency blocking, then DBSCAN on message embeddings")
+    panel_header("Clustering", "Alert Deduplication", "Rolling time window + service-dependency blocking, then DBSCAN on message embeddings", accent="blue")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Raw alerts", f"{nr['n_alerts']:,}")
     c2.metric("Distinct clusters", f"{nr['n_distinct_clusters']:,}")
@@ -398,7 +427,8 @@ with st.container(border=True):
 # ---------------- Risk ranking ----------------
 with st.container(border=True):
     panel_header("Priority", "Service Risk Ranking",
-                 f"Weights: frequency {w_freq/w_total:.0%} · MTTR p90 {w_mttr/w_total:.0%} · change failure {w_cfr/w_total:.0%}")
+                 f"Weights: frequency {w_freq/w_total:.0%} · MTTR p90 {w_mttr/w_total:.0%} · change failure {w_cfr/w_total:.0%}",
+                 accent="amber")
     st.dataframe(
         risk_df_view[["service", "risk_score", "incidents_per_month", "mttr_p90_minutes", "change_failure_rate"]]
         .style.format({"risk_score": "{:.1f}", "incidents_per_month": "{:.2f}", "mttr_p90_minutes": "{:.1f}",
@@ -406,11 +436,11 @@ with st.container(border=True):
         width="stretch", hide_index=True,
     )
     if len(risk_df_view):
-        st.bar_chart(risk_df_view.set_index("service")["risk_score"], color="#3FD9C7")
+        st.bar_chart(risk_df_view.set_index("service")["risk_score"], color="#F3B94D")
 
 # ---------------- MTTR ----------------
 with st.container(border=True):
-    panel_header("Recovery", "MTTR Distribution", "Log-normal / Weibull fit per service, reported as percentiles -- not the mean")
+    panel_header("Recovery", "MTTR Distribution", "Log-normal / Weibull fit per service, reported as percentiles -- not the mean", accent="violet")
     mttr_rows = []
     for svc, fit in report["mttr_fits"].items():
         if svc not in selected_services:
@@ -422,7 +452,8 @@ with st.container(border=True):
 # ---------------- Capacity forecast ----------------
 with st.container(border=True):
     panel_header("Forecast", "Capacity Forecast",
-                 f"Threshold {cap_threshold}% · gated on p&lt;0.05 and r²≥0.10 (a positive slope alone isn't a trend)")
+                 f"Threshold {cap_threshold}% · gated on p&lt;0.05 and r²≥0.10 (a positive slope alone isn't a trend)",
+                 accent="coral")
     live_capacity = forecast_all_services(tables["resource_metrics"], threshold=float(cap_threshold))
     cap_df = pd.DataFrame(live_capacity)
     cap_df = cap_df[cap_df["service"].isin(selected_services)] if selected_services else cap_df.iloc[0:0]
@@ -430,7 +461,7 @@ with st.container(border=True):
 
 # ---------------- Change failure model ----------------
 with st.container(border=True):
-    panel_header("Pre-merge risk", "Change-Failure Model", "Logistic regression on deploy features, flagging risky changes before merge")
+    panel_header("Pre-merge risk", "Change-Failure Model", "Logistic regression on deploy features, flagging risky changes before merge", accent="rose")
     cf = report["change_failure_model"]
     st.write(f"5-fold CV ROC AUC: **{cf['metrics'].get('cv_roc_auc_mean', float('nan')):.3f}** "
              f"(± {cf['metrics'].get('cv_roc_auc_std', 0):.3f})")
