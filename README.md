@@ -40,7 +40,7 @@ python scripts/run_eval.py
 
 # 5. Serve
 uvicorn relplatform.api.main:app --reload --app-dir src
-streamlit run src/relplatform/dashboard/app.py
+streamlit run src/relplatform/dashboard/Home.py
 
 # 6. Tests
 pytest
@@ -55,7 +55,13 @@ reachable from a URL instead of just `localhost`, deploy it to
 
 1. Go to share.streamlit.io, sign in with GitHub, click **New app**.
 2. Pick this repo, branch `main`, and set the main file path to
-   `src/relplatform/dashboard/app.py`.
+   `src/relplatform/dashboard/Home.py`.
+
+   **If you're updating an existing deployment** (this repo previously used
+   `dashboard/app.py` as the entry point, renamed to `Home.py` so the sidebar shows
+   "Home" instead of the literal word "app"): open the app's settings on
+   share.streamlit.io and change the main file path there too. The deploy will fail
+   until that setting matches the new filename.
 3. Before deploying, open **Advanced settings -> Secrets** and paste the contents of
    [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example) (edit the values
    first; see the comments in that file). At minimum, set `RELPLATFORM_MONTHS = "3"`

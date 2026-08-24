@@ -1,4 +1,8 @@
-"""Streamlit exec dashboard. Home page. Run with: streamlit run src/relplatform/dashboard/app.py
+"""Streamlit exec dashboard. Home page. Run with: streamlit run src/relplatform/dashboard/Home.py
+
+Named Home.py, not app.py: Streamlit's multipage sidebar labels the entry script by its
+filename, and "app.py" showed up in the nav as the unhelpful literal word "app". This is
+the only reason for the name; nothing else about it is special.
 
 On a fresh environment (e.g. a Streamlit Community Cloud deploy, which never receives
 the git-ignored 145MB reliability.duckdb) this bootstraps itself: generates data,
