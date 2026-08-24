@@ -23,6 +23,7 @@ import numpy as np
 from relplatform.generator.alert_messages import sample_alert
 from relplatform.generator.graph import CALL_EDGES, SERVICE_META, build_graph, callers_by_hop
 from relplatform.generator.postmortems import CATEGORIES, generate_postmortem
+from relplatform.generator.roster import generate_roster
 
 SEVERITIES = ["SEV1", "SEV2", "SEV3", "SEV4"]
 
@@ -47,6 +48,7 @@ class SimResult:
     incidents: list[dict] = field(default_factory=list)
     alerts: list[dict] = field(default_factory=list)
     resource_metrics: list[dict] = field(default_factory=list)
+    on_call_shifts: list[dict] = field(default_factory=list)
 
 
 def _sample_deploy_times(rng: random.Random, start: datetime, end: datetime, per_week: float) -> list[datetime]:
@@ -282,5 +284,8 @@ def simulate(seed: int, months: int = 12) -> SimResult:
             result.resource_metrics.append(dict(
                 service=service, ts=day_start, metric_name="p95_latency_ms", value=round(float(value), 1),
             ))
+
+    # ---- on-call roster (single org-wide primary rotation, see generator/roster.py) ----
+    result.on_call_shifts = generate_roster(rng, start, end)
 
     return result

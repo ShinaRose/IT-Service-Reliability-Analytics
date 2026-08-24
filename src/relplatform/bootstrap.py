@@ -28,16 +28,16 @@ _MISSING_TABLE_ERRORS = (duckdb.CatalogException,)
 
 def has_data(con) -> bool:
     init_schema(con)
-    # generator.load.load() runs six separate INSERTs with no wrapping transaction. If the
+    # generator.load.load() runs seven separate INSERTs with no wrapping transaction. If the
     # process is killed between them (a real risk on a resource-capped cold start -- the
     # exact scenario this module exists for), checking only `incidents` would call a
-    # generation that got as far as incidents but never reached alerts/resource_metrics
-    # "done", and every later restart would skip regeneration forever. Checking all three
-    # doesn't make load() atomic, but it closes most of the window.
+    # generation that got as far as incidents but never reached alerts/resource_metrics/
+    # on_call_shifts "done", and every later restart would skip regeneration forever.
+    # Checking all four doesn't make load() atomic, but it closes most of the window.
     try:
         counts = con.execute(
             "SELECT (SELECT count(*) FROM incidents), (SELECT count(*) FROM alerts), "
-            "(SELECT count(*) FROM resource_metrics)"
+            "(SELECT count(*) FROM resource_metrics), (SELECT count(*) FROM on_call_shifts)"
         ).fetchone()
         return all(c > 0 for c in counts)
     except _MISSING_TABLE_ERRORS:

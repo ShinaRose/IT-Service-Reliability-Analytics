@@ -78,6 +78,15 @@ CREATE TABLE IF NOT EXISTS alert_clusters (
     cluster_id    VARCHAR,   -- -1 = noise (DBSCAN)
     service       VARCHAR
 );
+
+CREATE TABLE IF NOT EXISTS on_call_shifts (
+    id           VARCHAR PRIMARY KEY,
+    engineer     VARCHAR,
+    shift_start  TIMESTAMP,
+    shift_end    TIMESTAMP,
+    is_holiday   BOOLEAN,   -- shift overlaps a company holiday (see generator/roster.py)
+    swapped      BOOLEAN    -- holiday coverage traded to the next engineer in rotation
+);
 """
 
 
@@ -91,6 +100,6 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
 
 
 def reset_schema(con: duckdb.DuckDBPyConnection) -> None:
-    for tbl in ["alerts", "incidents", "deployments", "resource_metrics", "service_dependencies", "services"]:
+    for tbl in ["alerts", "incidents", "deployments", "resource_metrics", "service_dependencies", "services", "on_call_shifts"]:
         con.execute(f"DROP TABLE IF EXISTS {tbl}")
     init_schema(con)

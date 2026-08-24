@@ -1,0 +1,22 @@
+# On-call health measurement windows. Both are configurable per the spec -- edit these
+# and every page on the On-Call Health dashboard tab recomputes against the new window.
+#
+# business_hours: when a page is considered "during the day". weekdays use Python's
+#   datetime.weekday() convention (Monday=0 .. Sunday=6); anything outside these
+#   weekdays, or outside [start_hour, end_hour) on them, counts as out-of-hours.
+#
+# sleep_hours: a narrower, always-active (every day of the week, including weekdays)
+#   window used specifically for the "how many pages interrupted someone's sleep" stat --
+#   deliberately separate from business_hours rather than derived as its complement,
+#   since "out of business hours" (e.g. 18:00-23:00) is inconvenient but not the same
+#   thing as "woke someone up". Wraps midnight: start_hour=23, end_hour=7 means
+#   23:00-23:59 and 00:00-06:59.
+
+business_hours:
+  start_hour: 9
+  end_hour: 18
+  weekdays: [0, 1, 2, 3, 4]   # Monday-Friday
+
+sleep_hours:
+  start_hour: 23
+  end_hour: 7

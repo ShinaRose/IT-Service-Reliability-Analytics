@@ -16,6 +16,7 @@ def load(con, result: SimResult) -> None:
     incidents_df = pd.DataFrame(result.incidents)
     alerts_df = pd.DataFrame(result.alerts)
     metrics_df = pd.DataFrame(result.resource_metrics)
+    roster_df = pd.DataFrame(result.on_call_shifts)
 
     con.execute("DELETE FROM services")
     con.execute("DELETE FROM service_dependencies")
@@ -23,6 +24,7 @@ def load(con, result: SimResult) -> None:
     con.execute("DELETE FROM incidents")
     con.execute("DELETE FROM alerts")
     con.execute("DELETE FROM resource_metrics")
+    con.execute("DELETE FROM on_call_shifts")
 
     con.register("services_df", services_df)
     con.execute("INSERT INTO services SELECT * FROM services_df")
@@ -36,3 +38,5 @@ def load(con, result: SimResult) -> None:
     con.execute("INSERT INTO alerts SELECT * FROM alerts_df")
     con.register("metrics_df", metrics_df)
     con.execute("INSERT INTO resource_metrics SELECT * FROM metrics_df")
+    con.register("roster_df", roster_df)
+    con.execute("INSERT INTO on_call_shifts SELECT * FROM roster_df")
