@@ -1,6 +1,6 @@
 """What-if sandbox: MTTR-reduction and change-failure-rate-reduction sliders, re-ranking
 both the composite risk score and euro impact live. See relplatform/finance/whatif.py
-for the math -- every slider move here is a cheap re-blend of already-computed
+for the math. Every slider move here is a cheap re-blend of already-computed
 per-service signals, not a recompute of anything upstream (no model retraining, no
 database round-trip), which is what keeps it interactive.
 """
@@ -34,8 +34,8 @@ from relplatform.finance.whatif import whatif_priced_incidents, whatif_risk_scor
 st.set_page_config(page_title="What-If Sandbox", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
-# Same literal thresholds relplatform.analytics.dora.deployment_frequency() uses --
-# reproduced here (not imported) because that function takes a full deployments
+# Same literal thresholds relplatform.analytics.dora.deployment_frequency() uses.
+# Reproduced here (not imported) because that function takes a full deployments
 # DataFrame with real timestamps to bucket into months, and there's no clean way to
 # feed it a single hypothetical "what if the rate were X/day" scalar.
 _DEPLOY_FREQ_ELITE_PER_DAY = 1.0
@@ -88,7 +88,7 @@ current_per_day = len(deployments) / observed_days
 with st.sidebar:
     st.markdown(theme.eyebrow_html("What-if controls"), unsafe_allow_html=True)
     st.title("What-If Sandbox")
-    st.caption("Every slider here re-blends numbers already on disk -- no recompute, no model retraining.")
+    st.caption("Every slider here re-blends numbers already on disk. No recompute, no model retraining.")
     mttr_reduction = st.slider("MTTR reduction (%)", 0, 50, 0)
     cfr_reduction = st.slider("Change failure rate reduction (%)", 0, 50, 0)
     st.divider()
@@ -106,7 +106,7 @@ st.markdown(
 theme.assumption_note(
     "MTTR reduction compresses every incident's duration by the same ratio (mirrors "
     "finance/counterfactual.py's assumption). Change-failure reduction scales down the "
-    "cost of incidents categorized as deployment_regression or configuration_error -- "
+    "cost of incidents categorized as deployment_regression or configuration_error, "
     "an expected-value adjustment across that category, not a claim about which "
     "specific incident would have been avoided. Deploy frequency has no euro/risk "
     "effect here: there's no non-speculative link from 'deploys more often' to "
@@ -116,7 +116,7 @@ theme.assumption_note(
 
 # ---------------- Risk ranking ----------------
 with st.container(border=True):
-    theme.panel_header("Risk", "Risk Ranking — Before vs. After", "Same three signals, MTTR and change-failure-rate scaled by the sliders", accent="blue")
+    theme.panel_header("Risk", "Risk Ranking: Before vs. After", "Same three signals, MTTR and change-failure-rate scaled by the sliders", accent="blue")
     whatif_risk = whatif_risk_scores(risk_df, mttr_reduction, cfr_reduction)
     compare = risk_df[["service", "risk_score"]].rename(columns={"risk_score": "risk_score_before"}).merge(
         whatif_risk[["service", "whatif_risk_score"]].rename(columns={"whatif_risk_score": "risk_score_after"}),
@@ -132,7 +132,7 @@ with st.container(border=True):
 
 # ---------------- Euro impact ----------------
 with st.container(border=True):
-    theme.panel_header("Financial", "Euro Impact — Before vs. After", "Incident + toil cost, same reductions applied", accent="coral")
+    theme.panel_header("Financial", "Euro Impact: Before vs. After", "Incident + toil cost, same reductions applied", accent="coral")
     whatif_priced = whatif_priced_incidents(priced, mttr_reduction, cfr_reduction)
     whatif_total_eur = whatif_priced["incident_cost_eur"].sum() + whatif_priced["toil_cost_eur"].sum()
     saved_eur = baseline_total_eur - whatif_total_eur
@@ -169,7 +169,7 @@ with st.container(border=True):
 
 # ---------------- Deploy frequency (informational) ----------------
 with st.container(border=True):
-    theme.panel_header("Deploy Frequency", "Informational Only — No Euro or Risk Effect", "Shown so the slider isn't silently ignored, not because it feeds the numbers above", accent="amber")
+    theme.panel_header("Deploy Frequency", "Informational Only: No Euro or Risk Effect", "Shown so the slider isn't silently ignored, not because it feeds the numbers above", accent="amber")
     whatif_per_day = current_per_day * (1 + deploy_freq_increase / 100)
     col1, col2 = st.columns(2)
     with col1:

@@ -1,6 +1,6 @@
 """Structural analytics: dependency-graph blast radius/criticality, mined
 failure-propagation edges, change-point early-warning backtest, and time-between-
-failures reliability curves. See relplatform/structural/ for the underlying math -- this
+failures reliability curves. See relplatform/structural/ for the underlying math. This
 page renders it and does no computation of its own beyond formatting and chart layout.
 """
 from __future__ import annotations
@@ -61,7 +61,7 @@ def _run_propagation_mining(_con, incidents: pd.DataFrame):
 def _combine_curves_for_chart(curves: dict) -> pd.DataFrame:
     """Step-function alignment: each service's KM curve has its own irregular time
     points, so build a shared time grid and forward-fill each curve onto it (a survival
-    curve is constant between its own drop points -- this is not an interpolation
+    curve is constant between its own drop points, this is not an interpolation
     choice, it's what the step function already means)."""
     all_times = sorted({t for c in curves.values() for t in c.timeline})
     data = {}
@@ -119,7 +119,7 @@ with st.container(border=True):
         "independently, scoped to one service). So co-occurrence mined below reflects "
         "shared risk factors or chance, not a simulated ground-truth cascade. Precision/"
         "recall compare mined pairs against the REAL dependency graph, which is the "
-        "honest thing to check given that limitation -- not proof of causation."
+        "honest thing to check given that limitation, not proof of causation."
     )
     if len(candidates) == 0:
         st.caption("No service pairs met the minimum co-occurrence bar in the current dataset.")
@@ -146,7 +146,7 @@ with st.container(border=True):
                         "CUSUM on incoming alert rate, backtested against known incident start times", accent="amber")
     theme.assumption_note(
         "Runs on the full alert stream, including background noise, not just "
-        "incident-attributed alerts -- in production you don't know in advance which "
+        "incident-attributed alerts. In production you don't know in advance which "
         "alerts are 'real'. A detection counts as a match if it lands up to 120 minutes "
         "before, or 10 minutes after, a labeled incident's start (relplatform/structural/"
         "changepoint.py: ChangePointConfig). Lead time is measured against the "

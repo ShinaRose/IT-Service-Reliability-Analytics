@@ -1,5 +1,5 @@
 """Shared visual system for every Streamlit page (Home + pages/). Extracted from the
-original single-page app.py so new pages don't duplicate ~150 lines of CSS -- this is
+original single-page app.py so new pages don't duplicate ~150 lines of CSS. This is
 the one place the dark/teal design system lives.
 
 Import order matters for callers: this module imports only `streamlit`, nothing from
@@ -28,10 +28,10 @@ CUSTOM_CSS = """
   --rp-text-dim: #9AA7B8;
   --rp-text-faint: #5C6880;
 
-  /* Per-panel signature hues -- each major section gets its own color so the page reads
+  /* Per-panel signature hues: each major section gets its own color so the page reads
      as distinct zones at a glance, not one accent repeated seven times. Not arbitrary:
      blue for the clustering/data-processing panel, amber for priority (reusing the same
-     amber as the "medium" DORA band -- it already means "pay attention" on this page),
+     amber as the "medium" DORA band, since it already means "pay attention" on this page),
      violet for recovery, coral for a forward-looking forecast, rose for the risk/failure
      domain (reusing the "bad" semantic color, since that IS this panel's subject). DORA
      and the AI exec summary bookend the page in the primary teal on purpose. */
@@ -109,7 +109,7 @@ div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.pan
 }
 div[data-testid="stLayoutWrapper"]:has(.panel-head) { margin-bottom: 20px; }
 
-/* Per-panel accent overrides -- same :has() anchoring, scoped by an accent-* class on
+/* Per-panel accent overrides: same :has() anchoring, scoped by an accent-* class on
    the panel's own .panel-head so each panel's top bar + eyebrow pick up its signature
    hue instead of the default teal. */
 div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.panel-head.accent-blue)::before   { background: linear-gradient(90deg, var(--rp-blue), transparent 85%); }
@@ -145,7 +145,7 @@ div[data-testid="stLayoutWrapper"] > div[data-testid="stVerticalBlock"]:has(.pan
 .band-medium { background: var(--rp-warn-soft); color: var(--rp-warn); }
 .band-low    { background: var(--rp-bad-soft);  color: var(--rp-bad); }
 
-/* Traffic-light pills (SLO ship/freeze) -- reuse the same visual language as band-pill */
+/* Traffic-light pills (SLO ship/freeze): reuse the same visual language as band-pill */
 .light-pill {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
@@ -212,8 +212,8 @@ def eyebrow_html(text: str) -> str:
 
 
 def panel_header(eyebrow_text: str, title: str, note: str = "", accent: str = "") -> None:
-    """accent: '' (teal, the default/brand color) or one of blue/amber/violet/coral/rose --
-    see the accent-* CSS rules for what each panel's signature hue is used for."""
+    """accent: '' (teal, the default/brand color) or one of blue/amber/violet/coral/rose.
+    See the accent-* CSS rules for what each panel's signature hue is used for."""
     note_html = f'<div class="panel-note">{note}</div>' if note else ""
     accent_cls = f" accent-{accent}" if accent else ""
     st.markdown(
@@ -234,11 +234,11 @@ SOURCE_COLORS = {"synthetic": "var(--rp-accent)", "github": "var(--rp-blue)", "u
 
 def source_badge(source: str, detail: str = "") -> None:
     """Persistent, unmissable label for which of the three data sources (synthetic /
-    github / uploaded) the numbers on screen right now came from -- every metric on a
+    github / uploaded) the numbers on screen right now came from. Every metric on a
     page using this must be truthfully attributable to whichever source is shown."""
     label = SOURCE_LABELS.get(source, source.upper())
     color = SOURCE_COLORS.get(source, "var(--rp-accent)")
-    detail_html = f'<span style="color: var(--rp-text-faint); font-weight: 400;">— {detail}</span>' if detail else ""
+    detail_html = f'<span style="color: var(--rp-text-faint); font-weight: 400;">&middot; {detail}</span>' if detail else ""
     st.markdown(
         f'<div style="display:inline-flex; align-items:center; gap:8px; font-family:\'IBM Plex Mono\',monospace; '
         f'font-size:12px; font-weight:600; letter-spacing:0.05em; padding:6px 14px; border-radius:999px; '
@@ -249,7 +249,7 @@ def source_badge(source: str, detail: str = "") -> None:
 
 
 def assumption_note(text: str) -> None:
-    """A visible callout for a number that rests on a stated assumption -- e.g. 'downtime
+    """A visible callout for a number that rests on a stated assumption, e.g. 'downtime
     = full incident duration', 'euro/minute cost is a config estimate, not measured'.
     Every new phase's UI is expected to use this next to any such number rather than
     letting the assumption live only in a docstring."""

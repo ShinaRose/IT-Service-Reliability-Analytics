@@ -1,5 +1,5 @@
 """Financial layer: every reliability metric gets a euro figure. See relplatform/finance/
-for the underlying math -- this page renders it and does no computation of its own beyond
+for the underlying math. This page renders it and does no computation of its own beyond
 per-service loops and formatting.
 """
 from __future__ import annotations
@@ -62,7 +62,7 @@ risk_df = pd.DataFrame(report["risk_scores"])
 with st.sidebar:
     st.markdown(theme.eyebrow_html("Cost controls"), unsafe_allow_html=True)
     st.title("Financial Impact")
-    st.caption("Rates come from config/costs.yaml -- edit that file to change them.")
+    st.caption("Rates come from config/costs.yaml. Edit that file to change them.")
     st.markdown('<div class="control-label">Loaded engineering rate</div>', unsafe_allow_html=True)
     st.caption(f"€{cost_config.loaded_hourly_rate_eur:.0f} / engineer-hour")
 
@@ -77,7 +77,7 @@ st.markdown(
 
 theme.assumption_note(
     "Downtime cost per service and the loaded engineering rate are illustrative config "
-    "values (config/costs.yaml), not measured business figures -- there is no real "
+    "values (config/costs.yaml), not measured business figures. There is no real "
     "finance data behind this platform. Every euro figure on this page inherits that "
     "assumption; edit the config to reflect real numbers."
 )
@@ -119,14 +119,14 @@ with st.container(border=True):
 # ---------------- Counterfactual ----------------
 with st.container(border=True):
     theme.panel_header("Counterfactual", "If This Service Moved Up One DORA Band",
-                        "Modeled for time-to-restore and change-failure-rate only -- see the assumption below", accent="violet")
+                        "Modeled for time-to-restore and change-failure-rate only. See the assumption below", accent="violet")
     theme.assumption_note(
         "Deployment frequency and lead time for changes are NOT modeled here: they correlate "
         "with reliability outcomes across organizations in DORA research, but there's no "
         "non-speculative formula from 'this service deploys more often' to 'this many fewer "
         "incident hours' for one service's own data. Forcing a number out of that correlation "
-        "would be exactly the kind of computation this platform doesn't let an LLM do either --"
-        " doing it in Python instead wouldn't make it less speculative."
+        "would be exactly the kind of computation this platform doesn't let an LLM do either. "
+        "Doing it in Python instead wouldn't make it less speculative."
     )
 
     labeled_deploys = label_deploy_caused_incidents(deployments, incidents)
@@ -172,7 +172,7 @@ with st.container(border=True):
 # ---------------- Risk score vs euro impact ----------------
 with st.container(border=True):
     theme.panel_header("Re-rank", "Risk Score vs. Euro Impact",
-                        "Same services, two rankings -- rank_delta > 0 means the euro ranking moved it up", accent="coral")
+                        "Same services, two rankings. rank_delta > 0 means the euro ranking moved it up", accent="coral")
     euro_df = euro_impact_by_service(priced)
     ranking = side_by_side_ranking(risk_df, euro_df)
     st.dataframe(

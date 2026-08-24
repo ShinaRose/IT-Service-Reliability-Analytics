@@ -1,7 +1,7 @@
 """Real-world DORA metrics: the same four official metrics the rest of this app reports
 on synthetic data, computed instead from a real public GitHub repo or the user's own
-uploaded CSVs. See relplatform/external/ for the connector and CSV-mapping logic --
-this page renders results and does no DORA computation of its own; every number comes
+uploaded CSVs. See relplatform/external/ for the connector and CSV-mapping logic. This
+page renders results and does no DORA computation of its own; every number comes
 from relplatform.analytics.dora's own banding functions, the same ones the synthetic
 pipeline uses, so a band means the same thing everywhere in this app.
 """
@@ -92,9 +92,9 @@ elif source == "GitHub repository":
         theme.assumption_note(
             "Every mapping below is a real judgment call, not a guess: repos with zero "
             "releases have no deployment-frequency signal (no fallback to counting merge "
-            "commits -- that conflates 'merged' with 'deployed'). Time to restore needs an "
+            "commits, since that conflates 'merged' with 'deployed'). Time to restore needs an "
             "incident-issue label you supply; there's no universal convention to guess "
-            "from. Unauthenticated GitHub calls are capped at 60/hour -- results are "
+            "from. Unauthenticated GitHub calls are capped at 60/hour. Results are "
             "cached for an hour, and calls per repo are bounded regardless of repo size."
         )
         col1, col2 = st.columns([2, 1])
@@ -135,17 +135,17 @@ elif source == "GitHub repository":
 else:
     with st.container(border=True):
         theme.panel_header("CSV Upload", "Compute DORA From Your Own Data",
-                            "Two files: one row per deployment, one row per incident -- map your own column names below", accent="violet")
+                            "Two files: one row per deployment, one row per incident. Map your own column names below", accent="violet")
         theme.assumption_note(
             "Change failure rate reuses this platform's own time-proximity heuristic "
             "(a deploy is charged with an incident if one starts within 4 hours on the "
-            "same service, matched to the nearest prior deploy) -- the same judgment call "
+            "same service, matched to the nearest prior deploy), the same judgment call "
             "the synthetic pipeline documents, applied here to your data. If you don't map "
             "a service column, every row is treated as one shared service."
         )
 
         st.markdown("**Deployments**")
-        dep_file = st.file_uploader("deployments.csv -- needs at least a deployment timestamp", type="csv", key="dep_csv")
+        dep_file = st.file_uploader("deployments.csv: needs at least a deployment timestamp", type="csv", key="dep_csv")
         dep_mapped = None
         if dep_file is not None:
             raw_dep = pd.read_csv(dep_file)
@@ -163,7 +163,7 @@ else:
             )
 
         st.markdown("**Incidents**")
-        inc_file = st.file_uploader("incidents.csv -- needs a start and resolution timestamp", type="csv", key="inc_csv")
+        inc_file = st.file_uploader("incidents.csv: needs a start and resolution timestamp", type="csv", key="inc_csv")
         inc_mapped = None
         if inc_file is not None:
             raw_inc = pd.read_csv(inc_file)

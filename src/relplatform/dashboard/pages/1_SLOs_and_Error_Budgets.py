@@ -53,15 +53,15 @@ incidents = _load_incidents(con)
 latency = _load_latency(con)
 slo_targets = load_slo_config()
 
-# change_failure_rate per service, already computed and persisted in the main report --
-# reused here rather than recomputed, so the cross-check compares against the exact same
+# change_failure_rate per service, already computed and persisted in the main report.
+# Reused here rather than recomputed, so the cross-check compares against the exact same
 # number shown on the Home page's risk ranking, not a second independent calculation.
 risk_df = pd.DataFrame(report["risk_scores"]).set_index("service")
 
 with st.sidebar:
     st.markdown(theme.eyebrow_html("SLO controls"), unsafe_allow_html=True)
     st.title("SLOs & Error Budgets")
-    st.caption("Per-service targets come from config/slo.yaml -- edit that file to change them.")
+    st.caption("Per-service targets come from config/slo.yaml. Edit that file to change them.")
 
 st.markdown(
     f'''<div class="hero">
@@ -81,7 +81,7 @@ theme.assumption_note(
 
 as_of = pd.to_datetime(latency["ts"]).max() if len(latency) else incidents["resolved_at"].max()
 if pd.isna(as_of):
-    st.error("No timestamped data available yet -- run the pipeline first.")
+    st.error("No timestamped data available yet. Run the pipeline first.")
     st.stop()
 
 # ---------------- Per-service overview ----------------
@@ -115,7 +115,7 @@ with st.container(border=True):
 with st.container(border=True):
     theme.panel_header(
         "Burn rate", "Multi-Window, Multi-Burn-Rate Alerts",
-        "Google SRE Workbook “Alerting on SLOs” — fires only when both the long and short window exceed threshold",
+        "Google SRE Workbook “Alerting on SLOs”: fires only when both the long and short window exceed threshold",
         accent="rose",
     )
     burn_rows = []
@@ -141,7 +141,7 @@ with st.container(border=True):
 with st.container(border=True):
     theme.panel_header(
         "Projection", "Budget Exhaustion Date",
-        "Heuristic range from 6h/24h/7d lookback burn rates — not a statistical confidence interval",
+        "Heuristic range from 6h/24h/7d lookback burn rates, not a statistical confidence interval",
         accent="coral",
     )
     proj_rows = []
@@ -158,7 +158,7 @@ with st.container(border=True):
 with st.container(border=True):
     theme.panel_header(
         "Recommendation", "Ship / Freeze",
-        "Cross-checked against the existing change-failure model — disagreements are surfaced, not hidden",
+        "Cross-checked against the existing change-failure model: disagreements are surfaced, not hidden",
         accent="violet",
     )
     for service, target in slo_targets.items():
@@ -178,7 +178,7 @@ with st.container(border=True):
 with st.container(border=True):
     theme.panel_header(
         "Latency", "Latency Target Compliance",
-        "Descriptive only — not folded into the availability error budget above",
+        "Descriptive only, not folded into the availability error budget above",
         accent="blue",
     )
     theme.assumption_note(

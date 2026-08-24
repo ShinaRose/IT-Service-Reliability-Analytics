@@ -1,6 +1,6 @@
 """On-call health: pages per shift, out-of-hours/sleep-hours load, interrupt
 concentration, and alert fatigue by service. See relplatform/oncall/ for the underlying
-math -- this page renders it and does no computation of its own beyond formatting.
+math. This page renders it and does no computation of its own beyond formatting.
 """
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ n_swapped = int(shifts["swapped"].sum()) if len(shifts) else 0
 with st.sidebar:
     st.markdown(theme.eyebrow_html("On-call controls"), unsafe_allow_html=True)
     st.title("On-Call Health")
-    st.caption("Windows come from config/oncall.yaml -- edit that file to change them.")
+    st.caption("Windows come from config/oncall.yaml. Edit that file to change them.")
     st.markdown('<div class="control-label">Business hours</div>', unsafe_allow_html=True)
     st.caption(f"{oncall_cfg.business_start_hour:02d}:00–{oncall_cfg.business_end_hour:02d}:00, weekdays {oncall_cfg.business_weekdays}")
     st.markdown('<div class="control-label">Sleep hours</div>', unsafe_allow_html=True)
@@ -93,7 +93,7 @@ st.markdown(
 
 theme.assumption_note(
     "Modeled as a single org-wide primary rotation covering all 8 services, not a "
-    "per-service rotation -- the common setup for a team this size. Every incident is "
+    "per-service rotation, the common setup for a team this size. Every incident is "
     "one page to whoever's shift covers its start time; the dozens of alerts in that "
     "incident's storm are not separately paged (real paging tools coalesce a storm into "
     "one notification, same as this platform's alert-dedup clustering recovers "
@@ -102,7 +102,7 @@ theme.assumption_note(
 
 # ---------------- Pages per shift ----------------
 with st.container(border=True):
-    theme.panel_header("Pages", "Pages per Shift", "Distribution across all shifts, including quiet ones -- percentiles, not a mean", accent="blue")
+    theme.panel_header("Pages", "Pages per Shift", "Distribution across all shifts, including quiet ones. Percentiles, not a mean", accent="blue")
     pct = pages_per_shift_percentiles(paged, shifts)
 
     if pct["n_shifts"] == 0:
@@ -129,7 +129,7 @@ with st.container(border=True):
     theme.assumption_note(
         "Out-of-hours = outside the configured business-hours window (any weekday hour "
         "outside it, or any weekend hour). Sleep-hours is a separate, narrower window "
-        "checked independently, not derived as out-of-hours' complement -- 19:00 on a "
+        "checked independently, not derived as out-of-hours' complement. 19:00 on a "
         "weekday is inconvenient but doesn't wake anyone up."
     )
     ooh = out_of_hours_rate(paged, oncall_cfg)
@@ -173,7 +173,7 @@ with st.container(border=True):
     theme.assumption_note(
         "The 50/50 weighting between noise ratio (raw alerts per distinct clustered "
         "incident) and paging load (pages/month) is a stated choice, not a derived "
-        "constant -- edit relplatform/oncall/fatigue.py's NOISE_WEIGHT/PAGE_LOAD_WEIGHT "
+        "constant. Edit relplatform/oncall/fatigue.py's NOISE_WEIGHT/PAGE_LOAD_WEIGHT "
         "to change the balance. Scores are relative to this fleet's own 8 services "
         "(min-max normalized), not an absolute scale."
     )

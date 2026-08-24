@@ -1,4 +1,4 @@
-"""Streamlit exec dashboard -- Home page. Run with: streamlit run src/relplatform/dashboard/app.py
+"""Streamlit exec dashboard. Home page. Run with: streamlit run src/relplatform/dashboard/app.py
 
 On a fresh environment (e.g. a Streamlit Community Cloud deploy, which never receives
 the git-ignored 145MB reliability.duckdb) this bootstraps itself: generates data,
@@ -8,7 +8,7 @@ the scripts/ pipeline, that work is reused as-is.
 This is a Streamlit multipage app: this file is "Home", and pages/ holds one script per
 extension phase (SLOs, financial, on-call, ...). Streamlit only executes the page
 currently being viewed, which is what gives lazy-per-tab loading on a memory-constrained
-deploy -- each page calls relplatform.dashboard.data.ensure_connection() independently
+deploy. Each page calls relplatform.dashboard.data.ensure_connection() independently
 rather than this file eagerly loading everything every other page might need.
 
 Interactive controls live in the sidebar. Risk-score weights, the capacity breach
@@ -29,9 +29,9 @@ import streamlit as st
 # Streamlit secrets -> env vars, BEFORE importing relplatform.config (which reads env
 # vars at import time). Wrapped in try/except: st.secrets raises if no secrets.toml
 # exists at all, which is the normal case for local development. Every page repeats this
-# block -- redundant if Home ran first in this process, but necessary if a user
-# deep-links straight to another page on a fresh session (Streamlit then runs that
-# page's script first, not this one).
+# block. Redundant if Home ran first in this process, but necessary if a user deep-links
+# straight to another page on a fresh session (Streamlit then runs that page's script
+# first, not this one).
 try:
     for key in ("RELPLATFORM_PROVIDER", "RELPLATFORM_MONTHS", "GEMINI_API_KEY", "RELPLATFORM_GEMINI_MODEL"):
         if key in st.secrets:
@@ -92,7 +92,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown('<div class="control-label">Risk score weights</div>', unsafe_allow_html=True)
-    st.caption("Reweight instantly -- no recompute needed, this just re-blends the three normalized signals already on disk.")
+    st.caption("Instant reweighting, no recompute. Re-blends the three normalized signals already on disk.")
     w_freq = st.slider("Incident frequency", 0, 100, 33)
     w_mttr = st.slider("MTTR p90", 0, 100, 33)
     w_cfr = st.slider("Change failure rate", 0, 100, 34)
@@ -197,7 +197,7 @@ with st.container(border=True):
             clustered = cluster_alerts(con, tables["alerts"], cfg)
             new_noise = noise_reduction_rate(clustered)
             new_eval = evaluate_against_ground_truth(clustered)
-        st.success("Recomputed with your parameters below (not persisted -- use 'Recompute full report' to make new clustering permanent).")
+        st.success("Recomputed with your parameters below (not persisted; use 'Recompute full report' to make new clustering permanent).")
         d1, d2, d3, d4 = st.columns(4)
         d1.metric("Raw alerts", f"{new_noise['n_alerts']:,}")
         d2.metric("Distinct clusters", f"{new_noise['n_distinct_clusters']:,}",
@@ -222,7 +222,7 @@ with st.container(border=True):
 
 # ---------------- MTTR ----------------
 with st.container(border=True):
-    panel_header("Recovery", "MTTR Distribution", "Log-normal / Weibull fit per service, reported as percentiles -- not the mean", accent="violet")
+    panel_header("Recovery", "MTTR Distribution", "Log-normal / Weibull fit per service, reported as percentiles, not the mean", accent="violet")
     mttr_rows = []
     for svc, fit in report["mttr_fits"].items():
         if svc not in selected_services:
@@ -254,54 +254,54 @@ with st.container(border=True):
     scoped = deploy_scores[deploy_scores["service"].isin(selected_services)] if selected_services else deploy_scores.iloc[0:0]
     if len(scoped):
         # Cutoff is deliberately computed across the whole fleet (deploy_scores), not just
-        # the filtered `scoped` set -- "top 10% riskiest" should mean fleet-wide, so that
+        # the filtered `scoped` set. "Top 10% riskiest" should mean fleet-wide, so that
         # narrowing the Services filter shows how many of *that* service's deploys clear a
         # fixed bar, not a moving one that always flags ~10% of whatever's currently shown.
         # The caption used to read "top X%... N of M in the selected services" without
         # saying the bar itself was fleet-wide, so a filtered view could show e.g. 8 of 12
-        # flagged and look broken next to "top 10%" -- now it says so explicitly.
+        # flagged and look broken next to "top 10%". Now it says so explicitly.
         cutoff = deploy_scores["risk_probability"].quantile(flag_pctile)
         flagged = scoped[scoped["risk_probability"] >= cutoff].sort_values("risk_probability", ascending=False)
         st.caption(f"Flagging deploys at or above the fleet-wide top {100 * (1 - flag_pctile):.0f}% risk bar "
-                   f"(probability ≥ {cutoff:.3f}) -- {len(flagged)} of {len(scoped)} deploys in the selected "
-                   f"services clear that bar")
+                   f"(probability ≥ {cutoff:.3f}). {len(flagged)} of {len(scoped)} deploys in the selected "
+                   f"services clear that bar.")
         st.dataframe(flagged.head(25)[["id", "service", "deployed_at", "risk_probability"]],
                      width="stretch", hide_index=True)
     else:
-        st.info("No persisted deploy risk scores for the selected services yet -- click 'Recompute full report'.")
+        st.info("No persisted deploy risk scores for the selected services yet. Click 'Recompute full report'.")
 
 # ---------------- Exec summary ----------------
 with st.container(border=True):
-    panel_header("AI layer", "Monthly Exec Summary", "Generated, not computed -- every number in it has to trace back to the report")
+    panel_header("AI layer", "Monthly Exec Summary", "Generated, not computed. Every number in it has to trace back to the report")
     if not provider_ready:
         st.warning("AI provider unavailable. Set RELPLATFORM_PROVIDER (mock/ollama/gemini) and, for gemini, GEMINI_API_KEY.")
     else:
         if st.button("Generate exec summary"):
             try:
                 with st.spinner("Generating..."):
-                    # risk_df_view (filtered by the Services multiselect), not risk_df --
-                    # every other live panel on this page respects the filter, and the
+                    # risk_df_view (filtered by the Services multiselect), not risk_df.
+                    # Every other live panel on this page respects the filter, and the
                     # summary silently ranking services the user excluded from view would
                     # look inconsistent with everything else on screen.
                     text, context, stats, unsupported_numbers = generate_exec_summary(
                         con, provider, dora, nr, risk_df_view, report["capacity_forecasts"], "current period",
                     )
                 if unsupported_numbers:
-                    st.warning(f"Could not fully verify this summary against the report after retrying -- "
-                               f"it may state numbers not present in the input: {unsupported_numbers}")
+                    st.warning(f"Could not fully verify this summary against the report after retrying. "
+                               f"It may state numbers not present in the input: {unsupported_numbers}")
                 st.session_state["exec_summary_text"] = text
                 st.caption(f"tokens_in={stats.tokens_in} tokens_out={stats.tokens_out} cache_hit={stats.hit}")
             except Exception as e:
                 st.error(f"Generation failed: {e}. If using Ollama, it isn't reachable from this "
-                         f"environment (Ollama only runs locally) -- switch RELPLATFORM_PROVIDER to "
+                         f"environment (Ollama only runs locally). Switch RELPLATFORM_PROVIDER to "
                          f"'gemini' or 'mock'.")
 
         if st.session_state.get("exec_summary_text"):
             st.markdown(st.session_state["exec_summary_text"])
 
     st.divider()
-    st.caption("One-page PDF: DORA metrics, top risk services, noise reduction, and capacity outlook -- "
-               "plus the AI narrative above, if you've generated one.")
+    st.caption("One-page PDF: DORA metrics, top risk services, noise reduction, and capacity outlook, "
+               "plus the AI narrative above if you've generated one.")
     pdf_bytes = build_exec_summary_pdf(
         report, seed=RANDOM_SEED, period_label="current period",
         ai_narrative=st.session_state.get("exec_summary_text"),
