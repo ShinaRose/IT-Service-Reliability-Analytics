@@ -1,0 +1,47 @@
+# Cost config for the financial layer. All figures EUR.
+#
+# These are illustrative placeholder figures, not real business numbers -- there's no
+# real finance data behind them (see the README's synthetic-data disclosure). Edit them
+# to reflect actual revenue/SLA-penalty impact per service and your organization's real
+# loaded engineering rate. Every number computed from this file is labeled on screen as
+# resting on this config, not presented as a measured fact.
+
+engineering:
+  # A "loaded" rate: salary + benefits + overhead, not a base salary/hour figure. This is
+  # what actually gets multiplied by engineer-hours to get a defensible toil cost.
+  loaded_hourly_rate_eur: 90
+
+# Fraction of the affected service's user base actually impacted by an incident of this
+# severity. SEV1 = a full outage on that path (100%); SEV4 = a minor/cosmetic issue
+# affecting a small fraction. Used as: incident_cost = duration_minutes *
+# downtime_cost_eur_per_minute[service] * affected_user_fraction_by_severity[severity].
+affected_user_fraction_by_severity:
+  SEV1: 1.0
+  SEV2: 0.5
+  SEV3: 0.2
+  SEV4: 0.05
+
+# Engineers actively engaged (responders) during an incident of this severity. Used to
+# estimate toil hours as responders_by_severity[severity] * (resolved_at - acknowledged_at)
+# -- deliberately NOT (resolved_at - started_at): the time between an incident starting
+# and someone acknowledging it is detection lag, not engineer toil time.
+responders_by_severity:
+  SEV1: 3
+  SEV2: 2
+  SEV3: 1
+  SEV4: 1
+
+default_downtime_cost_eur_per_minute: 50
+
+# Business impact of one minute of full downtime, per service. Rough tiering: services on
+# the direct revenue/checkout path cost the most per minute down; supporting/UX services
+# cost the least. Edit to reflect real revenue and SLA-penalty exposure.
+downtime_cost_eur_per_minute:
+  payments-service: 400
+  checkout-service: 350
+  auth-service: 200          # blocks the whole login-gated fleet when down
+  api-gateway: 150           # fronts everything, but impact is mostly via downstream services
+  inventory-service: 60
+  search-service: 40
+  recommendation-service: 15  # degrades UX, doesn't block core flows
+  notification-service: 10

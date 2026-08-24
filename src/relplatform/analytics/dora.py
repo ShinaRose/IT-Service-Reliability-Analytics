@@ -23,6 +23,17 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+# Numeric band boundaries, factored out as named constants rather than left as inline
+# literals in each function's if/elif chain -- relplatform.finance.counterfactual needs
+# the exact same thresholds to compute "what if this service moved up one band" without
+# silently drifting from what these functions actually implement.
+CHANGE_FAILURE_RATE_ELITE_MAX_PCT = 15.0
+CHANGE_FAILURE_RATE_HIGH_MAX_PCT = 30.0  # "high" and "medium" are the same 16-30% band in the source report
+
+TIME_TO_RESTORE_ELITE_MAX_HOURS = 1.0
+TIME_TO_RESTORE_HIGH_MAX_HOURS = 24.0
+TIME_TO_RESTORE_MEDIUM_MAX_HOURS = 24.0 * 7
+
 
 def label_deploy_caused_incidents(
     deployments: pd.DataFrame, incidents: pd.DataFrame, window_hours: float = 4.0
@@ -132,9 +143,9 @@ def change_failure_rate(deployments_labeled: pd.DataFrame) -> dict:
     # see the module docstring), low is anything above 30%. This used to have a fabricated
     # "medium: 30-45%" band that appears nowhere in the source material, silently
     # mislabeling a >30% rate as medium instead of low.
-    if rate <= 0.15:
+    if rate <= CHANGE_FAILURE_RATE_ELITE_MAX_PCT / 100:
         band = "elite"
-    elif rate <= 0.30:
+    elif rate <= CHANGE_FAILURE_RATE_HIGH_MAX_PCT / 100:
         band = "high"  # DORA's published chart shows High and Medium as the same 16-30% band
     else:
         band = "low"
@@ -166,11 +177,11 @@ def time_to_restore(incidents: pd.DataFrame) -> dict:
     df = df[df["restore_hours"] > 0]
     median_hours = float(df["restore_hours"].median())
 
-    if median_hours < 1:
+    if median_hours < TIME_TO_RESTORE_ELITE_MAX_HOURS:
         band = "elite"
-    elif median_hours <= 24:
+    elif median_hours <= TIME_TO_RESTORE_HIGH_MAX_HOURS:
         band = "high"
-    elif median_hours <= 24 * 7:
+    elif median_hours <= TIME_TO_RESTORE_MEDIUM_MAX_HOURS:
         band = "medium"
     else:
         band = "low"
