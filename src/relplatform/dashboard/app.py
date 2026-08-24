@@ -45,8 +45,10 @@ from relplatform.ai.exec_summary import generate_exec_summary
 from relplatform.ai.provider import get_provider
 from relplatform.analytics.capacity import forecast_all_services
 from relplatform.analytics.clustering import ClusteringConfig, cluster_alerts, evaluate_against_ground_truth, noise_reduction_rate
+from relplatform.config import RANDOM_SEED
 from relplatform.dashboard import theme
 from relplatform.dashboard.data import ensure_connection, load_report
+from relplatform.reporting.pdf_summary import build_exec_summary_pdf
 
 st.set_page_config(page_title="Reliability Analytics", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
@@ -77,6 +79,7 @@ with st.sidebar:
     st.markdown(eyebrow_html("Live controls"), unsafe_allow_html=True)
     st.title("Reliability Analytics")
     st.caption(f"Report computed {report['computed_at'][:19]} UTC")
+    st.caption(f"Synthetic data generated with seed={RANDOM_SEED} (set RELPLATFORM_SEED to change it, then regenerate).")
 
     if st.button("Recompute full report", width="stretch"):
         report = load_report(con, force=True)
@@ -286,9 +289,24 @@ with st.container(border=True):
                 if unsupported_numbers:
                     st.warning(f"Could not fully verify this summary against the report after retrying -- "
                                f"it may state numbers not present in the input: {unsupported_numbers}")
-                st.markdown(text)
+                st.session_state["exec_summary_text"] = text
                 st.caption(f"tokens_in={stats.tokens_in} tokens_out={stats.tokens_out} cache_hit={stats.hit}")
             except Exception as e:
                 st.error(f"Generation failed: {e}. If using Ollama, it isn't reachable from this "
                          f"environment (Ollama only runs locally) -- switch RELPLATFORM_PROVIDER to "
                          f"'gemini' or 'mock'.")
+
+        if st.session_state.get("exec_summary_text"):
+            st.markdown(st.session_state["exec_summary_text"])
+
+    st.divider()
+    st.caption("One-page PDF: DORA metrics, top risk services, noise reduction, and capacity outlook -- "
+               "plus the AI narrative above, if you've generated one.")
+    pdf_bytes = build_exec_summary_pdf(
+        report, seed=RANDOM_SEED, period_label="current period",
+        ai_narrative=st.session_state.get("exec_summary_text"),
+    )
+    st.download_button(
+        "Download exec summary (PDF)", data=pdf_bytes, file_name="reliability_exec_summary.pdf",
+        mime="application/pdf",
+    )

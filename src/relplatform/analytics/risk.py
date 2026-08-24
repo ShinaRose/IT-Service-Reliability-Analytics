@@ -14,7 +14,7 @@ import pandas as pd
 DEFAULT_WEIGHTS = {"incident_frequency": 1 / 3, "mttr_p90": 1 / 3, "change_failure_rate": 1 / 3}
 
 
-def _minmax(s: pd.Series) -> pd.Series:
+def minmax_normalize(s: pd.Series) -> pd.Series:
     lo, hi = s.min(), s.max()
     if hi - lo < 1e-9:
         return pd.Series(0.5, index=s.index)
@@ -53,9 +53,9 @@ def compute_risk_scores(
         "change_failure_rate": cfr.values,
     })
 
-    df["norm_incident_frequency"] = _minmax(df["incidents_per_month"])
-    df["norm_mttr_p90"] = _minmax(df["mttr_p90_minutes"])
-    df["norm_change_failure_rate"] = _minmax(df["change_failure_rate"])
+    df["norm_incident_frequency"] = minmax_normalize(df["incidents_per_month"])
+    df["norm_mttr_p90"] = minmax_normalize(df["mttr_p90_minutes"])
+    df["norm_change_failure_rate"] = minmax_normalize(df["change_failure_rate"])
 
     df["risk_score"] = (
         weights["incident_frequency"] * df["norm_incident_frequency"]
