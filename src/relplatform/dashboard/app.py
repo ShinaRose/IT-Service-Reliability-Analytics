@@ -177,6 +177,7 @@ with st.container(border=True):
         with col:
             st.metric(title, fmt(m), f"{m['trend']['pct_change']}% ({m['trend']['direction']})")
             st.markdown(band_pill(m["band"]), unsafe_allow_html=True)
+    st.caption("Synthetic data. See the Real-World DORA page to compute these same four metrics from a public GitHub repo or your own uploaded data.")
 
 # ---------------- Alert deduplication ----------------
 with st.container(border=True):

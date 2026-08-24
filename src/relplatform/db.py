@@ -79,6 +79,13 @@ CREATE TABLE IF NOT EXISTS alert_clusters (
     service       VARCHAR
 );
 
+CREATE TABLE IF NOT EXISTS github_cache (
+    cache_key     VARCHAR PRIMARY KEY,   -- sha256(request url)
+    url           VARCHAR,
+    fetched_at    TIMESTAMP,
+    response_json VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS on_call_shifts (
     id           VARCHAR PRIMARY KEY,
     engineer     VARCHAR,

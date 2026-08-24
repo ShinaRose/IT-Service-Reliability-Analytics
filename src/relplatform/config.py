@@ -42,6 +42,12 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
+# Optional: unauthenticated GitHub REST API calls are capped at 60/hour per IP. Setting
+# this (env var or Streamlit secret) raises that to 5,000/hour. Never required -- the
+# GitHub DORA connector (relplatform/external/github_dora.py) works unauthenticated,
+# just with a lower rate-limit ceiling.
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+
 # DORA thresholds (per DORA/Accelerate research program bands)
 DORA_BANDS = {
     "deployment_frequency": {

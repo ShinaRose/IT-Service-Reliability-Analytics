@@ -228,6 +228,26 @@ def stat_card(label: str, value: str, sub: str = "") -> str:
     return f'<div class="stat-card"><div class="stat-value">{value}</div><div class="stat-label">{label}</div>{sub_html}</div>'
 
 
+SOURCE_LABELS = {"synthetic": "SYNTHETIC DATA", "github": "GITHUB-DERIVED", "uploaded": "USER-UPLOADED"}
+SOURCE_COLORS = {"synthetic": "var(--rp-accent)", "github": "var(--rp-blue)", "uploaded": "var(--rp-violet)"}
+
+
+def source_badge(source: str, detail: str = "") -> None:
+    """Persistent, unmissable label for which of the three data sources (synthetic /
+    github / uploaded) the numbers on screen right now came from -- every metric on a
+    page using this must be truthfully attributable to whichever source is shown."""
+    label = SOURCE_LABELS.get(source, source.upper())
+    color = SOURCE_COLORS.get(source, "var(--rp-accent)")
+    detail_html = f'<span style="color: var(--rp-text-faint); font-weight: 400;">— {detail}</span>' if detail else ""
+    st.markdown(
+        f'<div style="display:inline-flex; align-items:center; gap:8px; font-family:\'IBM Plex Mono\',monospace; '
+        f'font-size:12px; font-weight:600; letter-spacing:0.05em; padding:6px 14px; border-radius:999px; '
+        f'border:1px solid {color}; color:{color}; margin-bottom:16px;">'
+        f'<span style="width:7px;height:7px;border-radius:50%;background:{color};"></span>{label} {detail_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def assumption_note(text: str) -> None:
     """A visible callout for a number that rests on a stated assumption -- e.g. 'downtime
     = full incident duration', 'euro/minute cost is a config estimate, not measured'.
