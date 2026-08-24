@@ -252,4 +252,35 @@ def simulate(seed: int, months: int = 12) -> SimResult:
                 service=service, ts=ts, metric_name="db_connection_pool_utilization_pct", value=round(value, 2),
             ))
 
+    # p95 latency: a genuine (if synthetic) latency signal, not just a declared-but-
+    # unmeasured config target -- SLO latency budgets in relplatform.slo need something
+    # to check against. Baseline per service + weekly seasonality + noise, with a
+    # severity-scaled spike on any day that service had an active incident, so the SLO
+    # burn-rate math has real correlated signal to detect rather than pure noise.
+    _SEV_LATENCY_MULT = {"SEV1": 3.0, "SEV2": 2.0, "SEV3": 1.4, "SEV4": 1.15}
+    incidents_by_service: dict[str, list[tuple[datetime, datetime, str]]] = {}
+    for inc in result.incidents:
+        incidents_by_service.setdefault(inc["service"], []).append(
+            (inc["started_at"], inc["resolved_at"], inc["severity"])
+        )
+
+    for service in SERVICE_META:
+        baseline_ms = rng.uniform(80, 320)
+        svc_incidents = incidents_by_service.get(service, [])
+        for d in range(days):
+            day_start = start + timedelta(days=d)
+            day_end = day_start + timedelta(days=1)
+            weekly = 0.05 * baseline_ms * np.sin(2 * np.pi * d / 7)
+            noise = nprng.normal(0, baseline_ms * 0.06)
+
+            spike_mult = 1.0
+            for inc_start, inc_end, sev in svc_incidents:
+                if inc_start < day_end and inc_end > day_start:
+                    spike_mult = max(spike_mult, _SEV_LATENCY_MULT.get(sev, 1.0))
+
+            value = max(5.0, (baseline_ms + weekly + noise) * spike_mult)
+            result.resource_metrics.append(dict(
+                service=service, ts=day_start, metric_name="p95_latency_ms", value=round(float(value), 1),
+            ))
+
     return result

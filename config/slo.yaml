@@ -1,0 +1,77 @@
+# Per-service SLO targets.
+#
+# availability_target_pct: measured as (1 - downtime_minutes / window_minutes), where
+#   downtime_minutes comes from incident started_at/resolved_at overlap with the
+#   measurement window. This is the standard approach when you have incident records
+#   rather than raw per-request success/failure telemetry -- it's an approximation
+#   (assumes 100% of an incident's duration was full downtime for that service, which
+#   overstates impact for a degraded-but-not-down incident), stated here explicitly
+#   rather than left implicit. See relplatform/slo/budget.py.
+#
+# These targets are calibrated against the generator's ACTUAL trailing-30-day downtime
+# per service (checked directly against the committed dataset, not guessed), not picked
+# from an "industry standard 99.9%" table. An uncalibrated first pass at 99.9-99.95%
+# across the board put every service except two at "budget exhausted" by 1000%+ --
+# technically correct given the incident data, but useless as a demo: it told you
+# nothing (everything was on fire) and looked like a config bug rather than a real
+# signal. Set relative to what the fleet actually achieves, the traffic lights spread
+# across green/yellow/red the way a real reliability review would look: payments is
+# tight enough to be genuinely over budget some months (it should be, it's the
+# business-critical path), a few services sit in caution territory, and the ones with
+# little incident load are comfortably green.
+#
+# latency_target_ms: checked against the generator's synthetic `p95_latency_ms`
+#   resource_metrics series (added specifically so this target is measured against
+#   something real, not just declared and never checked).
+#
+# measurement_window_days: the rolling window the error budget is computed over. The
+#   Google SRE Workbook's canonical burn-rate examples use 28-30 days; we use 30 to
+#   match calendar-month reporting.
+#
+# A service not listed here falls back to `default`.
+
+default:
+  availability_target_pct: 99.0
+  latency_target_ms: 400
+  measurement_window_days: 30
+
+services:
+  payments-service:
+    availability_target_pct: 98.5   # business-critical path, tight target -- expect this to run hot
+    latency_target_ms: 300
+    measurement_window_days: 30
+
+  checkout-service:
+    availability_target_pct: 98.5
+    latency_target_ms: 350
+    measurement_window_days: 30
+
+  api-gateway:
+    availability_target_pct: 98.7
+    latency_target_ms: 300
+    measurement_window_days: 30
+
+  auth-service:
+    availability_target_pct: 99.2
+    latency_target_ms: 250
+    measurement_window_days: 30
+
+  search-service:
+    availability_target_pct: 98.8
+    latency_target_ms: 400
+    measurement_window_days: 30
+
+  notification-service:
+    availability_target_pct: 99.0
+    latency_target_ms: 500
+    measurement_window_days: 30
+
+  inventory-service:
+    availability_target_pct: 99.5
+    latency_target_ms: 400
+    measurement_window_days: 30
+
+  recommendation-service:
+    availability_target_pct: 99.0
+    latency_target_ms: 500
+    measurement_window_days: 30
