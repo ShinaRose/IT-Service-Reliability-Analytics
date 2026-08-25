@@ -222,7 +222,7 @@ with st.container(border=True):
         width="stretch", hide_index=True,
     )
     if len(risk_df_view):
-        st.bar_chart(risk_df_view.set_index("service")["risk_score"], color="#F3B94D")
+        theme.bar_chart(risk_df_view.set_index("service")["risk_score"], color="#F3B94D")
 
 # ---------------- MTTR ----------------
 with st.container(border=True):

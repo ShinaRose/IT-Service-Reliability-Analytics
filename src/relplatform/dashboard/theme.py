@@ -2,12 +2,15 @@
 original single-page app.py so new pages don't duplicate ~150 lines of CSS. This is
 the one place the dark/teal design system lives.
 
-Import order matters for callers: this module imports only `streamlit`, nothing from
-`relplatform.config` or anything that transitively reads env vars, so it's always safe
-to import before a page has pushed st.secrets into os.environ.
+Import order matters for callers: this module imports only `streamlit`, `altair`, and
+`pandas` (altair is already a transitive streamlit dependency, no new package), nothing
+from `relplatform.config` or anything that transitively reads env vars, so it's always
+safe to import before a page has pushed st.secrets into os.environ.
 """
 from __future__ import annotations
 
+import altair as alt
+import pandas as pd
 import streamlit as st
 
 CUSTOM_CSS = """
@@ -261,3 +264,80 @@ def assumption_note(text: str) -> None:
         f'<div style="font-size: 12.5px; color: var(--rp-text-dim);">{text}</div></div>',
         unsafe_allow_html=True,
     )
+
+
+# ---------------- Charts ----------------
+# Hand-built with Altair instead of st.bar_chart/st.line_chart: Streamlit's native
+# chart shorthand binds mouse-wheel zoom/pan for exploring the x-axis, and a two-finger
+# trackpad scroll gesture is exactly the kind of input that triggers it -- the chart
+# zooms instead of the page scrolling underneath it, with no parameter on st.bar_chart/
+# st.line_chart to turn that off. These helpers render the same visual result with no
+# .interactive() binding at all, so scrolling over a chart always just scrolls the page.
+_CHART_SERIES_COLORS = ["#3FD9C7", "#5EC8F2", "#B18CF5", "#FF9166", "#4ADE94", "#F3B94D", "#F1706B", "#EDF1F5"]
+
+
+def _themed(chart: alt.Chart) -> alt.Chart:
+    return (
+        chart.configure_view(strokeWidth=0)
+        .configure_axis(
+            labelColor="#9AA7B8", titleColor="#9AA7B8", gridColor="#232C40",
+            domainColor="#232C40", tickColor="#232C40",
+            labelFont="IBM Plex Mono", titleFont="IBM Plex Mono", labelFontSize=11,
+        )
+        .configure_legend(labelColor="#9AA7B8", titleColor="#9AA7B8", labelFont="IBM Plex Mono", labelFontSize=11)
+    )
+
+
+def bar_chart(data, color="#3FD9C7", height: int = 260) -> None:
+    """Static bar chart, no scroll/zoom/pan capture. `data`: a Series (index=category)
+    for one series, or a DataFrame (index=category, columns=series) for grouped bars.
+    Same input shape st.bar_chart accepts."""
+    if not len(data):
+        st.caption("No data to chart.")
+        return
+
+    if isinstance(data, pd.Series):
+        cat_col = data.index.name or "category"
+        df = data.rename("value").reset_index()
+        chart = (
+            alt.Chart(df).mark_bar(color=color)
+            .encode(x=alt.X(f"{cat_col}:N", sort=None, title=None), y=alt.Y("value:Q", title=None),
+                    tooltip=[cat_col, "value"])
+        )
+    else:
+        cat_col = data.index.name or "category"
+        df = data.reset_index().melt(id_vars=cat_col, var_name="series", value_name="value")
+        colors = color if isinstance(color, list) else _CHART_SERIES_COLORS
+        chart = (
+            alt.Chart(df).mark_bar()
+            .encode(
+                x=alt.X(f"{cat_col}:N", sort=None, title=None),
+                xOffset="series:N",
+                y=alt.Y("value:Q", title=None),
+                color=alt.Color("series:N", scale=alt.Scale(range=colors), legend=alt.Legend(title=None)),
+                tooltip=[cat_col, "series", "value"],
+            )
+        )
+    st.altair_chart(_themed(chart).properties(height=height), width="stretch")
+
+
+def line_chart(data: pd.DataFrame, height: int = 280) -> None:
+    """Static multi-series line chart, no scroll/zoom/pan capture. `data`: a DataFrame
+    with the x-axis as its index and one column per series. Same input shape
+    st.line_chart accepts."""
+    if not len(data):
+        st.caption("No data to chart.")
+        return
+
+    idx_name = data.index.name or "x"
+    df = data.reset_index().melt(id_vars=idx_name, var_name="series", value_name="value")
+    chart = (
+        alt.Chart(df).mark_line()
+        .encode(
+            x=alt.X(f"{idx_name}:Q", title=idx_name),
+            y=alt.Y("value:Q", title=None),
+            color=alt.Color("series:N", scale=alt.Scale(range=_CHART_SERIES_COLORS), legend=alt.Legend(title=None)),
+            tooltip=[idx_name, "series", "value"],
+        )
+    )
+    st.altair_chart(_themed(chart).properties(height=height), width="stretch")

@@ -107,7 +107,7 @@ with st.container(border=True):
         width="stretch", hide_index=True,
     )
     st.caption("Services affected if this one fails")
-    st.bar_chart(report_df.set_index("service")["blast_radius_count"], color="#5EC8F2")
+    theme.bar_chart(report_df.set_index("service")["blast_radius_count"], color="#5EC8F2")
 
 # ---------------- Propagation mining ----------------
 with st.container(border=True):
@@ -201,4 +201,4 @@ with st.container(border=True):
         chart_df.index = chart_df.index / 1440  # minutes -> days for a readable x-axis
         chart_df.index.name = "days since previous failure"
         st.caption("S(t): probability a service goes longer than t days without another incident")
-        st.line_chart(chart_df)
+        theme.line_chart(chart_df)

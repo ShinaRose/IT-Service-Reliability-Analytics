@@ -180,4 +180,4 @@ with st.container(border=True):
         .style.format({"risk_score": "{:.1f}", "total_cost_eur": "€{:,.0f}"}),
         width="stretch", hide_index=True,
     )
-    st.bar_chart(euro_df.set_index("service")["total_cost_eur"], color="#FF9166")
+    theme.bar_chart(euro_df.set_index("service")["total_cost_eur"], color="#FF9166")

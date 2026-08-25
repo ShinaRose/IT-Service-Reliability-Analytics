@@ -160,7 +160,7 @@ with st.container(border=True):
             "perfect calibration": curve["predicted_probability"],
         }).set_index("predicted probability").sort_index()
         st.caption("Perfectly calibrated would track the diagonal exactly")
-        st.line_chart(chart_df)
+        theme.line_chart(chart_df)
     else:
         st.caption("Calibration curve unavailable for this run (too few positive examples in the test split).")
 

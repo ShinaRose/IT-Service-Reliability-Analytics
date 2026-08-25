@@ -120,7 +120,7 @@ with st.container(border=True):
         by_shift = pages_per_shift(paged)
         by_engineer = by_shift.groupby("engineer")["n_pages"].sum().sort_values(ascending=False)
         st.caption("Total pages by engineer, across all their shifts")
-        st.bar_chart(by_engineer, color="#5EC8F2")
+        theme.bar_chart(by_engineer, color="#5EC8F2")
 
 # ---------------- Out-of-hours / sleep-hours ----------------
 with st.container(border=True):
@@ -164,7 +164,7 @@ with st.container(border=True):
             unsafe_allow_html=True,
         )
         conc_df = pd.DataFrame(conc["by_engineer"]).set_index("engineer")
-        st.bar_chart(conc_df["n_pages"], color="#B18CF5")
+        theme.bar_chart(conc_df["n_pages"], color="#B18CF5")
 
 # ---------------- Alert fatigue by service ----------------
 with st.container(border=True):
@@ -190,4 +190,4 @@ with st.container(border=True):
             .style.format({"noise_ratio": "{:.1f}", "pages_per_month": "{:.1f}", "fatigue_score": "{:.0f}"}),
             width="stretch", hide_index=True,
         )
-        st.bar_chart(fatigue.set_index("service")["fatigue_score"], color="#FF9166")
+        theme.bar_chart(fatigue.set_index("service")["fatigue_score"], color="#FF9166")

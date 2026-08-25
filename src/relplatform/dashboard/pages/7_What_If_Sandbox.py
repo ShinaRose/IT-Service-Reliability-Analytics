@@ -128,7 +128,7 @@ with st.container(border=True):
         compare.style.format({"risk_score_before": "{:.1f}", "risk_score_after": "{:.1f}", "change": "{:+.1f}"}),
         width="stretch", hide_index=True,
     )
-    st.bar_chart(compare.set_index("service")[["risk_score_before", "risk_score_after"]], color=["#5EC8F2", "#4ADE94"])
+    theme.bar_chart(compare.set_index("service")[["risk_score_before", "risk_score_after"]], color=["#5EC8F2", "#4ADE94"])
 
 # ---------------- Euro impact ----------------
 with st.container(border=True):
@@ -149,7 +149,7 @@ with st.container(border=True):
     euro_before = euro_impact_by_service(priced)[["service", "total_cost_eur"]].rename(columns={"total_cost_eur": "before"})
     euro_after = euro_impact_by_service(whatif_priced)[["service", "total_cost_eur"]].rename(columns={"total_cost_eur": "after"})
     euro_compare = euro_before.merge(euro_after, on="service").sort_values("before", ascending=False)
-    st.bar_chart(euro_compare.set_index("service")[["before", "after"]], color=["#FF9166", "#4ADE94"])
+    theme.bar_chart(euro_compare.set_index("service")[["before", "after"]], color=["#FF9166", "#4ADE94"])
 
 # ---------------- Combined re-rank ----------------
 with st.container(border=True):
