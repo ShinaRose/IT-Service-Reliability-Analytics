@@ -1,23 +1,28 @@
-duckdb>=1.1
-pandas>=2.2
-numpy>=1.26
-scikit-learn>=1.4
-scipy>=1.12
+# Upper bounds added alongside the existing floors so a fresh install can't silently
+# pull in an untested future major version. Each ceiling is set one major version above
+# whatever's actually installed and tested in this project's venv (checked via
+# `pip list`), not guessed -- patch/minor updates stay unrestricted, a real major bump
+# needs a deliberate change here.
+duckdb>=1.1,<2.0
+pandas>=2.2,<4.0
+numpy>=1.26,<3.0
+scikit-learn>=1.4,<2.0
+scipy>=1.12,<2.0
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.2
-sentence-transformers>=3.0
-networkx>=3.2
-fastapi>=0.110
-uvicorn>=0.29
-streamlit>=1.35
-altair>=5.0    # already a transitive streamlit dependency; pinned explicitly since
-               # dashboard/theme.py now builds Altair chart specs directly (see
-               # theme.bar_chart/line_chart)
-pytest>=8.0
-ollama>=0.3
-google-generativeai>=0.7
-python-dotenv>=1.0
-httpx>=0.27
-jsonschema>=4.21
-pyyaml>=6.0
-fpdf2>=2.8
+torch>=2.2,<3.0
+sentence-transformers>=3.0,<7.0
+networkx>=3.2,<4.0
+fastapi>=0.110,<1.0
+uvicorn>=0.29,<1.0
+streamlit>=1.35,<2.0
+altair>=5.0,<7.0    # already a transitive streamlit dependency; pinned explicitly since
+                    # dashboard/theme.py now builds Altair chart specs directly (see
+                    # theme.bar_chart/line_chart)
+pytest>=8.0,<10.0
+ollama>=0.3,<1.0
+google-generativeai>=0.7,<1.0
+python-dotenv>=1.0,<2.0
+httpx>=0.27,<1.0
+jsonschema>=4.21,<5.0
+pyyaml>=6.0,<7.0
+fpdf2>=2.8,<3.0

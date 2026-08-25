@@ -36,6 +36,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -175,7 +176,10 @@ def fetch_commits(con, owner: str, repo: str, branch: str, since: pd.Timestamp |
 
 
 def fetch_issues(con, owner: str, repo: str, label: str, token: str | None = None) -> list[dict]:
-    url = f"{API_ROOT}/repos/{owner}/{repo}/issues?state=all&labels={label}"
+    # quote(safe=""): a label containing "&" or "#" would otherwise silently change the
+    # shape of the query string (extra params, truncated value) instead of erroring --
+    # encode it so the label is always sent as one opaque, correctly-scoped value.
+    url = f"{API_ROOT}/repos/{owner}/{repo}/issues?state=all&labels={urllib.parse.quote(label, safe='')}"
     issues = _paginated(con, url, token, per_page=ISSUES_PER_PAGE, max_pages=MAX_ISSUE_PAGES, ttl_minutes=CACHE_TTL_MINUTES)
     return [i for i in issues if "pull_request" not in i]  # the issues endpoint also returns PRs
 
