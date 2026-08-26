@@ -124,17 +124,29 @@ def _request(con, url: str, token: str | None, ttl_minutes: float):
         raise GitHubRepoError(f"Network error reaching GitHub: {e}") from e
 
     if resp.status_code == 404:
-        raise GitHubRepoError(f"Not found: {url} -- check the owner/repo name and that the repo is public.")
+        raise GitHubRepoError(f"Not found: {url}. Check the owner/repo name and that the repo is public.")
     if resp.status_code in (403, 429) and resp.headers.get("X-RateLimit-Remaining") == "0":
         reset_raw = resp.headers.get("X-RateLimit-Reset")
         reset_at = datetime.fromtimestamp(int(reset_raw), tz=timezone.utc) if reset_raw else None
         raise GitHubRateLimitError(reset_at, (
             "GitHub API rate limit exhausted"
-            + (f" -- resets at {reset_at.isoformat()}" if reset_at else "")
+            + (f", resets at {reset_at.isoformat()}" if reset_at else "")
             + ". Set a GITHUB_TOKEN (env var or Streamlit secret) for a 5,000/hour limit instead of 60/hour."
         ))
-    resp.raise_for_status()
-    data = resp.json()
+    # Any other non-2xx (a GitHub 5xx, an unexpected 4xx) or a malformed response body
+    # used to propagate as a raw httpx.HTTPStatusError / json.JSONDecodeError straight
+    # to the dashboard page, which only catches GitHubRepoError/GitHubRateLimitError --
+    # that showed a Python traceback instead of a message. Both are real, reachable
+    # failure modes (GitHub has outages; a proxy/CDN error page isn't valid JSON), not
+    # hypothetical, so they're folded into the same typed exception the page expects.
+    try:
+        resp.raise_for_status()
+        data = resp.json()
+    except httpx.HTTPStatusError as e:
+        raise GitHubRepoError(f"GitHub API returned an unexpected error ({resp.status_code}) for {url}. Try again shortly.") from e
+    except json.JSONDecodeError as e:
+        raise GitHubRepoError(f"GitHub API returned a response that wasn't valid JSON for {url}. Try again shortly.") from e
+
     _store_cache(con, url, data)
     return data
 

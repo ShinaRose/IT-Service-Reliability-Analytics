@@ -29,7 +29,7 @@ from relplatform.dashboard.data import ensure_connection, load_report
 from relplatform.external.csv_upload import compute_uploaded_dora, map_deployments, map_incidents
 from relplatform.external.github_dora import GitHubRateLimitError, GitHubRepoError, compute_github_dora, parse_repo_input
 
-st.set_page_config(page_title="Real-World DORA", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Real-World DORA", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 DORA_SPECS = [
@@ -83,6 +83,7 @@ if source == "Synthetic (built-in)":
     with st.container(border=True):
         theme.panel_header("DORA", "Four Keys", "From the synthetic dataset the rest of this app is built on", accent="blue")
         _render_dora_metrics(report["dora_metrics"])
+        st.caption("Same numbers as the Home page's DORA panel, plus every other analysis in this app: risk ranking, SLOs, financial impact, and more, all built on this same dataset.")
 
 # ==================== GitHub ====================
 elif source == "GitHub repository":

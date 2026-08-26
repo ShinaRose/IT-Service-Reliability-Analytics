@@ -30,7 +30,7 @@ from relplatform.finance.incident_cost import incident_costs
 from relplatform.finance.rerank import euro_impact_by_service, side_by_side_ranking
 from relplatform.finance.toil_cost import toil_by_root_cause, toil_by_service, toil_costs
 
-st.set_page_config(page_title="Financial Impact", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Financial Impact", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 
@@ -180,4 +180,5 @@ with st.container(border=True):
         .style.format({"risk_score": "{:.1f}", "total_cost_eur": "€{:,.0f}"}),
         width="stretch", hide_index=True,
     )
-    theme.bar_chart(euro_df.set_index("service")["total_cost_eur"], color="#FF9166")
+    theme.bar_chart(euro_df.set_index("service")["total_cost_eur"], color="#FF9166", empty_message="No priced incidents in the current dataset.")
+    st.caption("Want to see this ranking move? The What-If Sandbox page recomputes it live against MTTR and change-failure-rate reduction sliders.")

@@ -54,7 +54,7 @@ from relplatform.dashboard import theme
 from relplatform.dashboard.data import ensure_connection, load_report
 from relplatform.reporting.pdf_summary import build_exec_summary_pdf
 
-st.set_page_config(page_title="Reliability Analytics", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Reliability Analytics", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 band_pill = theme.band_pill
@@ -65,12 +65,33 @@ stat_card = theme.stat_card
 
 @st.cache_data
 def _load_tables(_con):
+    # incidents: only ever used on this page for its distinct `service` values, so this
+    # narrows out postmortem_text (a full generated paragraph per row) rather than
+    # pulling the whole table for nothing. alerts is NOT loaded here at all: it's the
+    # largest table on the whole platform (tens of thousands of rows including message
+    # text) and this page only touches it inside the "Recompute clustering" branch,
+    # which most visits never trigger -- see _load_alerts() below, called lazily only
+    # when that button is actually clicked.
     return {
-        "incidents": _con.execute("SELECT * FROM incidents").df(),
+        "incidents": _con.execute("SELECT id, service FROM incidents").df(),
         "resource_metrics": _con.execute("SELECT * FROM resource_metrics").df(),
-        "alerts": _con.execute("SELECT id, service, message, fired_at, incident_id FROM alerts").df(),
         "deploy_risk_scores": _con.execute("SELECT * FROM deploy_risk_scores").df(),
     }
+
+
+@st.cache_data
+def _load_alerts(_con):
+    return _con.execute("SELECT id, service, message, fired_at, incident_id FROM alerts").df()
+
+
+@st.cache_data
+def _build_exec_summary_pdf_cached(_report: dict, seed: int, period_label: str, computed_at: str, ai_narrative: str | None) -> bytes:
+    # `computed_at`/`ai_narrative` are the PDF's only real inputs (report content is
+    # keyed by when it was computed, not re-hashed via `_report` -- the leading
+    # underscore tells st.cache_data to skip hashing that argument). Without this, every
+    # slider drag on this page (weights, capacity threshold, flagging percentile) reruns
+    # the whole script and rebuilds a PDF nobody asked to re-download yet.
+    return build_exec_summary_pdf(_report, seed=seed, period_label=period_label, ai_narrative=ai_narrative)
 
 
 con = ensure_connection()
@@ -198,7 +219,7 @@ with st.container(border=True):
     if recluster:
         with st.spinner(f"Re-clustering: window={window_minutes}min, eps={eps}, min_samples={min_samples}..."):
             cfg = ClusteringConfig(window_minutes=float(window_minutes), dbscan_eps=float(eps), dbscan_min_samples=int(min_samples))
-            clustered = cluster_alerts(con, tables["alerts"], cfg)
+            clustered = cluster_alerts(con, _load_alerts(con), cfg)
             new_noise = noise_reduction_rate(clustered)
             new_eval = evaluate_against_ground_truth(clustered)
         st.success("Recomputed with your parameters below (not persisted; use 'Recompute full report' to make new clustering permanent).")
@@ -306,9 +327,9 @@ with st.container(border=True):
     st.divider()
     st.caption("One-page PDF: DORA metrics, top risk services, noise reduction, and capacity outlook, "
                "plus the AI narrative above if you've generated one.")
-    pdf_bytes = build_exec_summary_pdf(
-        report, seed=RANDOM_SEED, period_label="current period",
-        ai_narrative=st.session_state.get("exec_summary_text"),
+    pdf_bytes = _build_exec_summary_pdf_cached(
+        report, RANDOM_SEED, "current period", report["computed_at"],
+        st.session_state.get("exec_summary_text"),
     )
     st.download_button(
         "Download exec summary (PDF)", data=pdf_bytes, file_name="reliability_exec_summary.pdf",

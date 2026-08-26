@@ -30,7 +30,7 @@ from relplatform.structural.graph import structural_report
 from relplatform.structural.propagation import enrichment_scores, validate_against_dependency_graph
 from relplatform.structural.survival import reliability_curves_all_services
 
-st.set_page_config(page_title="Structural Analytics", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Structural Analytics", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 
@@ -101,6 +101,8 @@ st.markdown(
 with st.container(border=True):
     theme.panel_header("Dependency Graph", "Blast Radius and Criticality",
                         "Blast radius = services affected if this one fails · criticality = PageRank on the call graph", accent="blue")
+    st.markdown(theme.render_dependency_graph_svg(g, report), unsafe_allow_html=True)
+    st.caption("Node size = blast radius, node color = criticality (darker/dimmer = less critical, brighter blue = more), arrows show caller → callee")
     report_df = pd.DataFrame(report)
     st.dataframe(
         report_df[["service", "tier", "blast_radius_count", "criticality_pagerank", "direct_callers"]],

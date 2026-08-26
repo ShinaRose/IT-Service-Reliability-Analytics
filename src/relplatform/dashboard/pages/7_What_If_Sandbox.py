@@ -31,7 +31,7 @@ from relplatform.finance.rerank import euro_impact_by_service
 from relplatform.finance.toil_cost import toil_costs
 from relplatform.finance.whatif import whatif_priced_incidents, whatif_risk_scores
 
-st.set_page_config(page_title="What-If Sandbox", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="What-If Sandbox", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 # Same literal thresholds relplatform.analytics.dora.deployment_frequency() uses.
@@ -153,7 +153,7 @@ with st.container(border=True):
 
 # ---------------- Combined re-rank ----------------
 with st.container(border=True):
-    theme.panel_header("Combined", "Risk Rank vs. Euro Rank, After the What-If", "Same side-by-side comparison Phase 2 uses, recomputed against the adjusted numbers", accent="violet")
+    theme.panel_header("Combined", "Risk Rank vs. Euro Rank, After the What-If", "Same side-by-side comparison the Financial Impact page uses, recomputed against the adjusted numbers", accent="violet")
     risk_ranked = compare[["service", "risk_score_after"]].rename(columns={"risk_score_after": "risk_score"}) \
         .sort_values("risk_score", ascending=False).reset_index(drop=True)
     risk_ranked["risk_rank"] = risk_ranked.index + 1

@@ -30,7 +30,7 @@ import pandas as pd
 from relplatform.config import ROOT
 from relplatform.dashboard import theme
 
-st.set_page_config(page_title="Evaluation", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Evaluation", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 EVAL_REPORT_PATH = ROOT / "data" / "eval_report.json"

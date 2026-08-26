@@ -72,12 +72,25 @@ def main():
     print(f"  AI categorization using provider={provider.name} model={provider.model}")
     ai_preds = []
     stats: list[CachedCallStats] = []
+    n_failed = 0
     t0 = time.time()
     for row in sample.itertuples():
-        data, s = categorize_postmortem(con, provider, row.postmortem_text, row.id)
-        ai_preds.append(data.get("root_cause_category", "deployment_regression"))
-        stats.append(s)
+        try:
+            data, s = categorize_postmortem(con, provider, row.postmortem_text, row.id)
+            ai_preds.append(data.get("root_cause_category", "deployment_regression"))
+            stats.append(s)
+        except Exception as e:
+            # A per-item network failure (now bounded by REQUEST_TIMEOUT_SECONDS in
+            # ai/provider.py, rather than the unbounded hang that turned one earlier run
+            # into a 2.8-hour batch) shouldn't take the other 99 items down with it --
+            # log it, count it as a miss against ground truth, and keep going.
+            n_failed += 1
+            print(f"    item {row.id} failed: {e}")
+            ai_preds.append("deployment_regression")
+            stats.append(CachedCallStats(hit=False, tokens_in=0, tokens_out=0, latency_ms=0.0))
     wall = time.time() - t0
+    if n_failed:
+        print(f"  {n_failed} of {len(sample)} items failed (timeout or provider error) and were scored as misses")
     ai_result = evaluate_ai_categorization(sample, ai_preds)
     root_cause_batch_report = build_batch_report("root_cause", stats, wall)
     print(f"  AI categorization accuracy: {ai_result['accuracy']:.3f}  (baseline: {baseline_result['accuracy']:.3f})")

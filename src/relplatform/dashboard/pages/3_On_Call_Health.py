@@ -34,7 +34,7 @@ from relplatform.oncall.pages import (
     sleep_hours_interruptions,
 )
 
-st.set_page_config(page_title="On-Call Health", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="On-Call Health", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 
@@ -120,7 +120,7 @@ with st.container(border=True):
         by_shift = pages_per_shift(paged)
         by_engineer = by_shift.groupby("engineer")["n_pages"].sum().sort_values(ascending=False)
         st.caption("Total pages by engineer, across all their shifts")
-        theme.bar_chart(by_engineer, color="#5EC8F2")
+        theme.bar_chart(by_engineer, color="#5EC8F2", empty_message="No pages recorded for any engineer in this period.")
 
 # ---------------- Out-of-hours / sleep-hours ----------------
 with st.container(border=True):
@@ -177,6 +177,7 @@ with st.container(border=True):
         "to change the balance. Scores are relative to this fleet's own 8 services "
         "(min-max normalized), not an absolute scale."
     )
+    st.caption("The noise-ratio half comes from alert clustering. Its parameters (rolling window, DBSCAN eps/min_samples) live on the Home page's sidebar.")
     if len(shifts):
         months = max(1.0, (shifts["shift_end"].max() - shifts["shift_start"].min()).days / 30.0)
     else:

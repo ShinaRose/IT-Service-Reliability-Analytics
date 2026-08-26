@@ -137,6 +137,44 @@ def test_request_raises_rate_limit_error_with_reset_time(monkeypatch):
     assert exc_info.value.reset_at == datetime(2026, 1, 1, tzinfo=timezone.utc)
 
 
+def test_request_raises_github_repo_error_on_unexpected_5xx(monkeypatch):
+    # Previously uncaught: a non-404, non-rate-limit failure status hit
+    # resp.raise_for_status() with nothing catching httpx.HTTPStatusError, so it
+    # propagated as a raw traceback all the way to the dashboard page instead of the
+    # typed exception the page already knows how to show a friendly message for.
+    def fake_get(url, headers=None, timeout=None):
+        return _response(url, status_code=502, json_body={"message": "Bad Gateway"})
+
+    monkeypatch.setattr(gh.httpx, "get", fake_get)
+    with pytest.raises(gh.GitHubRepoError):
+        gh._request(None, "https://api.github.com/repos/x/y", None, gh.CACHE_TTL_MINUTES)
+
+
+def test_request_raises_github_repo_error_on_malformed_json_body(monkeypatch):
+    def fake_get(url, headers=None, timeout=None):
+        return httpx.Response(status_code=200, content=b"<html>not json</html>", request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(gh.httpx, "get", fake_get)
+    with pytest.raises(gh.GitHubRepoError):
+        gh._request(None, "https://api.github.com/repos/x/y", None, gh.CACHE_TTL_MINUTES)
+
+
+def test_fetch_issues_url_encodes_the_label(monkeypatch):
+    # A label containing "&" or "#" used to change the shape of the query string
+    # instead of being sent as one opaque value.
+    seen_urls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        seen_urls.append(url)
+        return _response(url, json_body=[])
+
+    monkeypatch.setattr(gh.httpx, "get", fake_get)
+    gh.fetch_issues(None, "octocat", "Hello-World", "bug & urgent #1")
+    assert len(seen_urls) == 1
+    assert "labels=bug%20%26%20urgent%20%231" in seen_urls[0]
+    assert "&urgent" not in seen_urls[0]  # the raw "&" must not have reached the URL unescaped
+
+
 # ---------------- compute_github_dora orchestration ----------------
 
 def test_compute_github_dora_no_releases_no_label(monkeypatch):

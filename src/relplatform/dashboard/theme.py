@@ -2,14 +2,17 @@
 original single-page app.py so new pages don't duplicate ~150 lines of CSS. This is
 the one place the dark/teal design system lives.
 
-Import order matters for callers: this module imports only `streamlit`, `altair`, and
-`pandas` (altair is already a transitive streamlit dependency, no new package), nothing
-from `relplatform.config` or anything that transitively reads env vars, so it's always
-safe to import before a page has pushed st.secrets into os.environ.
+Import order matters for callers: this module imports only `streamlit`, `altair`,
+`pandas`, and `networkx` (altair is already a transitive streamlit dependency and
+networkx is already a project dependency used throughout relplatform.generator/
+structural -- no new package either way), nothing from `relplatform.config` or anything
+that transitively reads env vars, so it's always safe to import before a page has
+pushed st.secrets into os.environ.
 """
 from __future__ import annotations
 
 import altair as alt
+import networkx as nx
 import pandas as pd
 import streamlit as st
 
@@ -89,6 +92,9 @@ h1, h2, h3 { font-family: 'IBM Plex Sans', sans-serif; letter-spacing: -0.01em; 
 }
 .stat-label { font-size: 12.5px; color: var(--rp-text-faint); margin-top: 6px; }
 .stat-sub { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--rp-text-dim); margin-top: 4px; }
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ---------------- Panels (st.container(border=True)) ----------------
    Streamlit's own bordered-container testid isn't stable across versions (this one
@@ -189,7 +195,24 @@ div[data-testid="stButton"] > button:focus:not(:active) { border-color: var(--rp
 [data-testid="stDataFrame"], [data-testid="stExpander"] {
   border: 1px solid var(--rp-border) !important; border-radius: 10px !important; overflow: hidden;
 }
-[data-testid="stExpander"] summary { font-family: 'IBM Plex Sans', sans-serif; }
+[data-testid="stExpander"] summary {
+  font-family: 'IBM Plex Sans', sans-serif; background: var(--rp-surface) !important; color: var(--rp-text) !important;
+}
+
+/* ---------------- Selects / sliders ----------------
+   config.toml sets base="dark" as the default, and the elements above are already
+   force-styled regardless of Streamlit's active theme -- but a viewer who manually
+   flips Streamlit's own light/dark toggle (hamburger menu > Settings) would otherwise
+   still see these specific native widgets flip to light-mode colors while everything
+   else on the page stays forced dark. Pinned the same way as the rest of this file. */
+[data-testid="stSelectbox"] > div > div, [data-testid="stMultiSelect"] > div > div {
+  background-color: var(--rp-surface) !important; border-color: var(--rp-border) !important; color: var(--rp-text) !important;
+}
+[data-baseweb="select"] * { color: var(--rp-text) !important; }
+[data-testid="stSlider"] [data-testid="stTickBarMin"], [data-testid="stSlider"] [data-testid="stTickBarMax"] {
+  color: var(--rp-text-faint) !important;
+}
+div[data-testid="stSlider"] > div > div > div > div { background-color: var(--rp-accent) !important; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
@@ -288,12 +311,14 @@ def _themed(chart: alt.Chart) -> alt.Chart:
     )
 
 
-def bar_chart(data, color="#3FD9C7", height: int = 260) -> None:
+def bar_chart(data, color="#3FD9C7", height: int = 260, empty_message: str = "No data to chart.") -> None:
     """Static bar chart, no scroll/zoom/pan capture. `data`: a Series (index=category)
     for one series, or a DataFrame (index=category, columns=series) for grouped bars.
-    Same input shape st.bar_chart accepts."""
+    Same input shape st.bar_chart accepts. `empty_message`: shown instead of a chart
+    when `data` is empty -- callers with a specific reason ("didn't clear the
+    threshold" vs. generic "no data") should pass one rather than leaving the default."""
     if not len(data):
-        st.caption("No data to chart.")
+        st.caption(empty_message)
         return
 
     if isinstance(data, pd.Series):
@@ -321,12 +346,86 @@ def bar_chart(data, color="#3FD9C7", height: int = 260) -> None:
     st.altair_chart(_themed(chart).properties(height=height), width="stretch")
 
 
-def line_chart(data: pd.DataFrame, height: int = 280) -> None:
+def render_dependency_graph_svg(g: nx.DiGraph, report: list[dict], width: int = 720, height: int = 420) -> str:
+    """Node-link diagram of the service dependency graph. Node radius = blast radius
+    (services affected if this one fails), node color = criticality (PageRank) --
+    both real numbers from relplatform.structural.graph.structural_report, not
+    decorative sizing. Positions come from nx.spring_layout with a fixed seed, so the
+    layout is stable across reruns instead of jittering on every page load.
+
+    Hand-built inline SVG, not st.graphviz_chart: that needs a system-level Graphviz
+    binary installed, a real deployment risk on Streamlit Community Cloud's free tier
+    (no apt-get access without a packages.txt this project doesn't otherwise need).
+    Colors are computed as literal hex/rgb, the same pattern the Evaluation page's
+    confusion-matrix heatmap already uses, not CSS var() references -- keeps this
+    function usable standalone without depending on theme.inject() having run first.
+    """
+    by_service = {r["service"]: r for r in report}
+    pos = nx.spring_layout(g, seed=42, k=1.4, iterations=200)
+
+    xs = [p[0] for p in pos.values()]
+    ys = [p[1] for p in pos.values()]
+    x_lo, x_hi = min(xs), max(xs)
+    y_lo, y_hi = min(ys), max(ys)
+    margin = 60
+
+    def scale(xy):
+        x, y = xy
+        sx = margin + (x - x_lo) / max(1e-6, x_hi - x_lo) * (width - 2 * margin)
+        sy = margin + (y - y_lo) / max(1e-6, y_hi - y_lo) * (height - 2 * margin)
+        return sx, sy
+
+    max_blast = max((r["blast_radius_count"] for r in report), default=0) or 1
+    max_crit = max((r["criticality_pagerank"] for r in report), default=0) or 1e-6
+
+    def node_radius(svc: str) -> float:
+        return 14 + (by_service.get(svc, {}).get("blast_radius_count", 0) / max_blast) * 18
+
+    def node_color(svc: str) -> str:
+        t = min(1.0, by_service.get(svc, {}).get("criticality_pagerank", 0) / max_crit)
+        r = round(23 + t * (94 - 23))
+        gr = round(31 + t * (200 - 31))
+        b = round(49 + t * (242 - 49))
+        return f"rgb({r},{gr},{b})"
+
+    edges_svg = []
+    for u, v in g.edges():
+        x1, y1 = scale(pos[u])
+        x2, y2 = scale(pos[v])
+        dx, dy = x2 - x1, y2 - y1
+        dist = max(1e-6, (dx**2 + dy**2) ** 0.5)
+        r_target = node_radius(v) + 5  # stop the line short so the arrowhead clears the target circle
+        x2s, y2s = x2 - dx / dist * r_target, y2 - dy / dist * r_target
+        edges_svg.append(
+            f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2s:.1f}" y2="{y2s:.1f}" '
+            f'stroke="#3A4560" stroke-width="1.4" marker-end="url(#rp-graph-arrow)" opacity="0.8"/>'
+        )
+
+    nodes_svg = []
+    for svc in g.nodes():
+        x, y = scale(pos[svc])
+        radius = node_radius(svc)
+        label = svc.removesuffix("-service")
+        nodes_svg.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius:.1f}" fill="{node_color(svc)}" stroke="#0A0E16" stroke-width="2"/>'
+            f'<text x="{x:.1f}" y="{y + radius + 16:.1f}" text-anchor="middle" '
+            f'font-family="IBM Plex Mono, monospace" font-size="11" fill="#9AA7B8">{label}</text>'
+        )
+
+    return (
+        f'<svg viewBox="0 0 {width} {height}" width="100%" height="{height}" xmlns="http://www.w3.org/2000/svg">'
+        f'<defs><marker id="rp-graph-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+        f'orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3A4560"/></marker></defs>'
+        f'{"".join(edges_svg)}{"".join(nodes_svg)}</svg>'
+    )
+
+
+def line_chart(data: pd.DataFrame, height: int = 280, empty_message: str = "No data to chart.") -> None:
     """Static multi-series line chart, no scroll/zoom/pan capture. `data`: a DataFrame
     with the x-axis as its index and one column per series. Same input shape
-    st.line_chart accepts."""
+    st.line_chart accepts. `empty_message`: see bar_chart's docstring."""
     if not len(data):
-        st.caption("No data to chart.")
+        st.caption(empty_message)
         return
 
     idx_name = data.index.name or "x"

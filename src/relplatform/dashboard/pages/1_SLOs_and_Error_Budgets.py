@@ -28,7 +28,7 @@ from relplatform.slo.burn_rate import evaluate_burn_rate_alerts, project_exhaust
 from relplatform.slo.config import load_slo_config
 from relplatform.slo.freeze import recommend
 
-st.set_page_config(page_title="SLOs & Error Budgets", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="SLOs & Error Budgets", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 theme.inject()
 
 
@@ -173,6 +173,7 @@ with st.container(border=True):
         cols[2].caption("; ".join(rec.reasons))
         if rec.disagreement:
             st.warning(f"**{service}**: {rec.disagreement_note}")
+    st.caption("Change-failure rate here is the same number shown in the Home page's risk ranking, not a second calculation.")
 
 # ---------------- Latency (descriptive, not part of the error budget) ----------------
 with st.container(border=True):

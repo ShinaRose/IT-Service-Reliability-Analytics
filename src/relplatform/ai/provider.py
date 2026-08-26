@@ -26,6 +26,14 @@ import numpy as np
 
 from relplatform.config import GEMINI_API_KEY, GEMINI_MODEL, MODEL_PROVIDER, OLLAMA_HOST, OLLAMA_MODEL
 
+# Neither ollama.Client nor Gemini's generate_content default to a bounded timeout --
+# ollama.Client(timeout=None) (the implicit default) passes straight through to
+# httpx.Client(timeout=None), which is genuinely unbounded, not "use httpx's usual
+# default." A single hung call blocks forever. 60s is generous relative to this
+# project's observed real-world median call latency (~12.5s), so it only ever cuts off
+# calls that are already pathological, not slow-but-fine ones.
+REQUEST_TIMEOUT_SECONDS = 60.0
+
 
 @dataclass
 class GenerateResult:
@@ -140,11 +148,11 @@ def _parse_and_validate(text: str, schema: dict) -> tuple[dict, str | None]:
 class OllamaProvider(ModelProvider):
     name = "ollama"
 
-    def __init__(self, model: str = OLLAMA_MODEL, host: str = OLLAMA_HOST):
+    def __init__(self, model: str = OLLAMA_MODEL, host: str = OLLAMA_HOST, timeout: float = REQUEST_TIMEOUT_SECONDS):
         super().__init__(model)
         import ollama
 
-        self._client = ollama.Client(host=host)
+        self._client = ollama.Client(host=host, timeout=timeout)
 
     def _generate_raw(self, prompt, system, max_tokens, temperature):
         messages = []
@@ -180,6 +188,7 @@ class GeminiProvider(ModelProvider):
             generation_config=self._genai.types.GenerationConfig(
                 max_output_tokens=max_tokens, temperature=temperature,
             ),
+            request_options={"timeout": REQUEST_TIMEOUT_SECONDS},
         )
         text = resp.text
         usage = getattr(resp, "usage_metadata", None)

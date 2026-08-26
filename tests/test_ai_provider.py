@@ -1,4 +1,4 @@
-from relplatform.ai.provider import MockProvider
+from relplatform.ai.provider import REQUEST_TIMEOUT_SECONDS, MockProvider, OllamaProvider
 from relplatform.ai.schemas import ROOT_CAUSE_SCHEMA
 
 
@@ -41,3 +41,18 @@ def test_embed_returns_expected_shape(memdb):
     vectors = provider.embed(memdb, ["hello world", "another message"])
     assert vectors.shape[0] == 2
     assert vectors.shape[1] > 0
+
+
+def test_ollama_provider_has_a_bounded_timeout():
+    # A single hung call used to block forever: ollama.Client(host=host) with no
+    # timeout kwarg passes timeout=None straight through to httpx.Client, which means
+    # genuinely unbounded, not "httpx's usual default." This constructs the real
+    # ollama.Client (no network I/O happens in __init__, just httpx.Client setup) and
+    # inspects its configured timeout directly, rather than mocking the SDK.
+    provider = OllamaProvider(host="http://localhost:11434")
+    assert provider._client._client.timeout.connect == REQUEST_TIMEOUT_SECONDS
+
+
+def test_ollama_provider_respects_custom_timeout():
+    provider = OllamaProvider(host="http://localhost:11434", timeout=5.0)
+    assert provider._client._client.timeout.connect == 5.0
